@@ -1,7 +1,11 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Text;
+using System.Text.RegularExpressions;
+using Sqlol.Configurations;
 using Sqlol.Configurations.Factories;
 using Sqlol.Expressions;
+using Sqlol.Expressions.Builders;
 
 public class Expressions
 {
@@ -35,14 +39,14 @@ public class Expressions
                         //SqlolLogicalOperation.Xor => (result && !prevResult) || (!result && prevResult)
                     };
                 }
-                
-                
+
+
                 Console.WriteLine(" " + next + " " + result);
-                
+
 
                 if (f.Next == "or")
                 {
-                    if(orWait)
+                    if (orWait)
                     {
                         result = prevOr || result;
                         orWait = false;
@@ -59,14 +63,14 @@ public class Expressions
                     }
                 }
                 else if (f.Next == "and" || f.Next == "xor") orWait = true;
-                
+
                 if (f.Next == "xor")
                 {
                     prevXor = r;
                     xorWait = true;
                 }
 
-               // if (next == SqlolLogicalOperation.Xor) prevXor = result;
+                // if (next == SqlolLogicalOperation.Xor) prevXor = result;
 
                 next = f.Next;
                 prevResult = result;
@@ -85,10 +89,10 @@ public class Expressions
                 }
 
                 bool r = result;
-                
+
                 if (e.Next == "or")
                 {
-                    if(orWait)
+                    if (orWait)
                     {
                         result = prevOr || result;
                         orWait = false;
@@ -105,7 +109,7 @@ public class Expressions
                     }
                 }
                 else if (e.Next == "and" || e.Next == "xor") orWait = true;
-                
+
                 if (e.Next == "xor")
                 {
                     prevXor = r;
@@ -123,92 +127,36 @@ public class Expressions
             prevResult = (prevResult && !prevXor) || (!prevResult && prevXor);
             Console.WriteLine(prevResult + " " + prevXor);
         }
+
         if (orWait)
         {
             prevResult = prevOr || prevResult;
         }
+
         return prevResult;
     }
 }
 
 internal class Program
 {
-     public static void Main(string[] args)
-     {
-//         Filter f1 = new Filter("x", "3", SqlolElementaryOperation.Less, SqlolLogicalOperation.And);
-//         Filter f2 = new("q", "2", SqlolElementaryOperation.Equals);
-//         Expression expression1 = new();
-//
-//         expression1.Entities.Add(f1);
-//         expression1.Entities.Add(f2);
-//
-//         Filter f3 = new("t", "5", SqlolElementaryOperation.Greater);
-//         Expression expression2 = new();
-//
-//         expression2.Entities.Add(f3);
-//         expression2.Next = SqlolLogicalOperation.Or;
-//
-//
-//         Expression expression3 = new();
-//         expression3.Entities.Add(expression2);
-//         expression3.Entities.Add(expression1);
-//
-//
-//         Expression result = new();
-//         result.Entities.Add(new Filter("z", "2", SqlolElementaryOperation.NotEquals, SqlolLogicalOperation.And));
-//         expression3.Next = SqlolLogicalOperation.And;
-//         result.Entities.Add(expression3);
-//
-//         Expression expression5 = new();
-//         expression5.Entities.Add(new Filter("k", "4", SqlolElementaryOperation.Equals, SqlolLogicalOperation.None));
-//
-//         result.Entities.Add(expression5);
-//
-//         Console.WriteLine(result);
-//
-//
-// //z != 2 and ((t > 5) or (x<3 and q==2)) and (k == 4)
-//         List<string> variables =
-//             ["z", "t", "x", "q", "k"];
-//         List<List<int>> records =
-//         [
-//             [2, 0, 0, 0, 0],
-//             [1, 6, 0, 0, 4],
-//             [1, 6, 0, 0, 2],
-//             [1, 2, 2, 2, 4],
-//             [1, 2, 2, 2, 2],
-//             [1, 2, 5, 2, 2],
-//         ];
-//
-//         Expressions e = new();
-//         Print(result, records[0]);
-//         variables.ForEach(x => Console.Write(x.ToString() + " "));
-//         Console.WriteLine();
-//         Console.WriteLine("z != 2 and ((t > 5) or (x<3 and q==2)) and (k == 4)");
-//         for (int i = 0; i < records.Count; i++)
-//         {
-//             records[i].ForEach(x => Console.Write(x.ToString() + " "));
-//             Console.Write("\t" + e.Check(result, variables, records[i]));
-//             Console.WriteLine();
-//         }
-    }
+    public static void Main(string[] args)
+    {
+        // Console.WriteLine("Допустим задали число с 5 цифрами в целой части и 4 после запятой");
+        //
+        // int a = 5, b = 4;
+        //
+        //
+        // Regex regex = new(@"\d{" + a + @"}[.]\d{" + b + @"}", RegexOptions.Compiled);
+        // //Console.WriteLine(regex.Match("055878345.128884")); // 78345.1288
+        //
+         // string query = "select * from table where something";
+         // string reg = @"select.+from.+where";
+         // Console.WriteLine(Regex.Match(query, @"select.+from.+where"));
 
-    // static bool Print(Expression expression, List<int> record)
-    // {
-    //     for (int i = 0; i < expression.Entities.Count; i++)
-    //     {
-    //         if (expression.Entities[i] is Filter f)
-    //         {
-    //             Console.WriteLine(f.Field + " " + f.Operation + " " + f.Value);
-    //             if (f.Next != SqlolLogicalOperation.None) Console.WriteLine(f.Next);
-    //         }
-    //         else if (expression.Entities[i] is Expression e)
-    //         {
-    //             Print(e, record);
-    //             Console.WriteLine(e.Next);
-    //         }
-    //     }
-    //
-    //     return true;
-    // }
+        IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
+        IOperationFactory operationFactory = new OperationFactory();
+        IExpressionBuilder builder = new ExpressionBuilder();
+        
+
+    }
 }

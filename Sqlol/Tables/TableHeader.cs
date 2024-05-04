@@ -1,15 +1,6 @@
 ﻿namespace Sqlol.Tables;
 
-public enum SqlolType
-{
-    C,
-    D,
-    N,
-    L,
-    M
-}
-
-public struct TableHeader
+public class TableHeader
 {
     public bool HasMemoFile { get; private set; }
     public DateTime LastUpdateDate { get; private set; }

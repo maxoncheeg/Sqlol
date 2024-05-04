@@ -2,6 +2,7 @@
 
 public class KeyWordsConfiguration : IKeyWordsConfiguration
 {
+    public IList<string> Types { get; set; } = ["C", "D", "N", "L", "M"];
     public IList<string> LogicalOperations { get; set; } = ["or", "and", "xor"];
     public IList<string> NumberOperations { get; set; } = ["=", "<>", ">", "<", ">=", "<="];
     public IList<string> StringOperations { get; set; } = ["=", "<>"];
