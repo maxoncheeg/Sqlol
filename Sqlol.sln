@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sqlol", "Sqlol\Sqlol.csproj", "{046303DE-3E86-4532-8650-04C72A75BDD0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sqlol.Console", "Sqlol.Console\Sqlol.Console.csproj", "{DD44267F-990D-4467-AA5A-53FF1D6989B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sqlol.Tests", "Sqlol.Tests\Sqlol.Tests.csproj", "{0CC22065-323D-4819-8FFD-860793466856}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{046303DE-3E86-4532-8650-04C72A75BDD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{046303DE-3E86-4532-8650-04C72A75BDD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{046303DE-3E86-4532-8650-04C72A75BDD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{046303DE-3E86-4532-8650-04C72A75BDD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD44267F-990D-4467-AA5A-53FF1D6989B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD44267F-990D-4467-AA5A-53FF1D6989B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD44267F-990D-4467-AA5A-53FF1D6989B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD44267F-990D-4467-AA5A-53FF1D6989B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CC22065-323D-4819-8FFD-860793466856}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CC22065-323D-4819-8FFD-860793466856}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CC22065-323D-4819-8FFD-860793466856}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CC22065-323D-4819-8FFD-860793466856}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
