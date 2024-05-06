@@ -1,7 +1,7 @@
 ﻿using Sqlol.Configurations.Factories.Operations;
 using Sqlol.Configurations.Factories.Operations.Numbers;
 
-namespace Sqlol.Tests.Expressions;
+namespace Sqlol.Tests.Operations;
 
 [TestClass]
 public class OperationsTests

@@ -31,6 +31,11 @@ public class QueryManager : IQueryManager
         throw new NotImplementedException();
     }
 
+    public bool DropTable(string query)
+    {
+        throw new NotImplementedException();
+    }
+
     public int Execute(string query)
     {
         throw new NotImplementedException();
@@ -39,5 +44,14 @@ public class QueryManager : IQueryManager
     public ITableData ExecuteNoneQuery(string query)
     {
         throw new NotImplementedException();
+    }
+
+
+    public void Dispose()
+    {
+        foreach (var table in _openedTables)
+        {
+            table.Dispose();
+        }
     }
 }

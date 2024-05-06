@@ -2,6 +2,5 @@
 
 public interface ITableMemory
 {
-    public TableHeader Header { get; set; }
-    
+
 }

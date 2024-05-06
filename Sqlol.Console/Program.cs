@@ -149,14 +149,19 @@ internal class Program
         // Regex regex = new(@"\d{" + a + @"}[.]\d{" + b + @"}", RegexOptions.Compiled);
         // //Console.WriteLine(regex.Match("055878345.128884")); // 78345.1288
         //
-         // string query = "select * from table where something";
-         // string reg = @"select.+from.+where";
-         // Console.WriteLine(Regex.Match(query, @"select.+from.+where"));
+        string query = "gsdf select * from table where something asd";
 
-        IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
-        IOperationFactory operationFactory = new OperationFactory();
-        IExpressionBuilder builder = new ExpressionBuilder();
-        
+        Console.WriteLine(Regex.Match(query, @"select.+from.+where").Success);
+        Console.WriteLine(Regex.Match(query, @"^select.+from.+where.+$").Success);
+
+        // "select * from table";
+        // "select dasfads, fasf from table";
+        // "select dasfads, fasf from table where dasdas = dsa or sda and";
+
+        // IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
+        // IOperationFactory operationFactory = new OperationFactory();
+        // IExpressionBuilder builder = new ExpressionBuilder();
+        //
 
     }
 }

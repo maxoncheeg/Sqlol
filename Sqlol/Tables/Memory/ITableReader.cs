@@ -5,7 +5,13 @@
 /// </summary>
 public interface ITableReader
 {
-    public ITable? CreateTable(TableHeader)
+    /// <summary>
+    /// Создание файла таблицы
+    /// </summary>
+    /// <param name="properties">Столбцы таблицы</param>
+    /// <returns>Объект для взаимодействия с таблицей</returns>
+    public ITable? CreateTable(IList<ITableProperty> properties);
+    
     /// <summary>
     /// Прочесть заголовок таблицы в объект ITable для последующих взаимодействий с таблицей
     /// </summary>
