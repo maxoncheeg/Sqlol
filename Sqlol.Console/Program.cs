@@ -6,6 +6,9 @@ using Sqlol.Configurations;
 using Sqlol.Configurations.Factories;
 using Sqlol.Expressions;
 using Sqlol.Expressions.Builders;
+using Sqlol.Queries;
+using Sqlol.Tables.Memory;
+using Sqlol.Tables.Properties;
 
 public class Expressions
 {
@@ -141,27 +144,27 @@ internal class Program
 {
     public static void Main(string[] args)
     {
-        // Console.WriteLine("Допустим задали число с 5 цифрами в целой части и 4 после запятой");
-        //
-        // int a = 5, b = 4;
-        //
-        //
-        // Regex regex = new(@"\d{" + a + @"}[.]\d{" + b + @"}", RegexOptions.Compiled);
-        // //Console.WriteLine(regex.Match("055878345.128884")); // 78345.1288
-        //
-        string query = "gsdf select * from table where something asd";
+        // ITableReader reader = new TableReader();
+        // IQueryManager manager = new QueryManager(reader, validationFactory);
+        // Console.WriteLine(manager.CreateTable("create sqlol_primary_table"));
 
-        Console.WriteLine(Regex.Match(query, @"select.+from.+where").Success);
-        Console.WriteLine(Regex.Match(query, @"^select.+from.+where.+$").Success);
+        IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
+        IValidationFactory validationFactory = new ValidationFactory();
+        ITablePropertyConverter converter = new TablePropertyConverter(configuration);
+        
+        //запрос
+        string query = "create table amerika (x C (20), y N (3,5), z L)";
+        Console.WriteLine(query);
+        //проверяем валидацию
+        Console.WriteLine(validationFactory.Validate("create", query) + "\nСвойства:\n");
 
-        // "select * from table";
-        // "select dasfads, fasf from table";
-        // "select dasfads, fasf from table where dasdas = dsa or sda and";
+        //разбираем на поля
+        string[] properties = converter.GetStringProperties(query);
+        foreach (var property in properties)
+            Console.WriteLine(property);
 
-        // IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
-        // IOperationFactory operationFactory = new OperationFactory();
-        // IExpressionBuilder builder = new ExpressionBuilder();
-        //
-
+        //конвертируем в классы
+        //List<ITableProperty> result = converter.Convert(properties).ToList();
+        //List<ITableProperty> result = converter.Convert(query).ToList();
     }
 }
