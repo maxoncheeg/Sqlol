@@ -1,10 +1,29 @@
-﻿namespace Sqlol.Tables.Memory;
+﻿using Sqlol.Tables.Properties;
+
+namespace Sqlol.Tables.Memory;
 
 public class TableReader : ITableReader
 {
-    public ITable? CreateTable(IList<ITableProperty> properties)
+    public ITable? CreateTable(IList<ITableProperty> properties, string tableName)
     {
-        throw new NotImplementedException();
+        if (File.Exists(tableName + ".dbf"))
+        {
+            //error
+            return null;
+        }
+
+        try
+        {
+            Stream stream = File.Create(tableName + ".dbf");
+            ITable table = new StreamTable(new TableMemory(), tableName, stream, []);
+            return table;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            return null;
+        }
+
     }
 
     public ITable? ReadTable(string fileName)

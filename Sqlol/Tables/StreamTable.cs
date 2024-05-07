@@ -1,11 +1,14 @@
 ﻿using Sqlol.Expressions;
+using Sqlol.Tables.Memory;
+using Sqlol.Tables.Properties;
 
 namespace Sqlol.Tables;
 
-public class Table : ITable
+public class StreamTable : ITable
 {
-    private Func<string, string, bool> _applyRequired;
-    
+    private ITableMemory _memory;
+    private Func<string, string, bool>? _applyRequired;
+
     public string Name { get; }
     public bool HasMemoFile { get; }
     public DateTime LastUpdateDate { get; }
@@ -14,14 +17,23 @@ public class Table : ITable
     public short RecordLength { get; }
     public IReadOnlyList<ITableProperty> Properties { get; }
 
-    public Table(string name, Func<string, string, bool> applyRequired, Stream tableStream)
+    public StreamTable(ITableMemory memory, string name, Stream tableStream, List<ITableProperty> properties,
+        Func<string, string, bool>? applyRequired = null)
     {
         Name = name;
         _applyRequired = applyRequired;
+        _memory = memory;
         
-        
+        LastUpdateDate = DateTime.Now;
+        HasMemoFile = false;
+        RecordsAmount = 0;
+        HeaderLength = 32;
+        RecordLength = 5;
+
+        _memory.SaveHeader(this, tableStream);
+        tableStream.Dispose();
     }
-    
+
     public bool Insert(IList<Tuple<string, string>> data)
     {
         throw new NotImplementedException();

@@ -2,5 +2,5 @@
 
 public interface ITableMemory
 {
-
+    public void SaveHeader(ITable table, Stream stream);
 }

@@ -1,5 +1,6 @@
 ﻿using Sqlol.Expressions;
 using Sqlol.Tables.Memory;
+using Sqlol.Tables.Properties;
 
 namespace Sqlol.Tables;
 
