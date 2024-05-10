@@ -4,8 +4,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Sqlol.Configurations;
 using Sqlol.Configurations.Factories;
+using Sqlol.Configurations.TypesConfigurations;
 using Sqlol.Expressions;
 using Sqlol.Expressions.Builders;
+using Sqlol.Loggers;
 using Sqlol.Queries;
 using Sqlol.Tables.Memory;
 using Sqlol.Tables.Properties;
@@ -140,28 +142,65 @@ public class Expressions
     }
 }
 
+public class B
+{
+    public int X { get; set; }
+}
+
+public class A
+{
+    public void B(B b)
+    {
+        b = new B() { X = 10 };
+    }
+}
+
 internal class Program
 {
     public static void Main(string[] args)
     {
-        // ITableReader reader = new TableReader();
+
         // IQueryManager manager = new QueryManager(reader, validationFactory);
         // Console.WriteLine(manager.CreateTable("create sqlol_primary_table"));
 
+
         IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
         IValidationFactory validationFactory = new ValidationFactory();
+        ILogger logger = new SimpleLogger((t, m) => { Console.WriteLine($"{t}: {m}"); });
+
         ITablePropertyConverter converter = new TablePropertyConverter(configuration);
-        
+        IQueryFactory queryFactory = new QueryFactory(converter, validationFactory, logger);
+
+        IQueryManager manager = new QueryManager(validationFactory, queryFactory);
+
         //запрос
-        string query = "create table amerika (x C (20), y N (3,5), z L)";
+        string query = "create table russia (x C (20), y N (3,5), z L)";
         Console.WriteLine(query);
         //проверяем валидацию
         Console.WriteLine(validationFactory.Validate("create", query) + "\nСвойства:\n");
 
-        //разбираем на поля
+        // //разбираем на поля
         string[] properties = converter.GetStringProperties(query);
         foreach (var property in properties)
             Console.WriteLine(property);
+
+        Console.WriteLine("Имя таблицы " + validationFactory.GetTableName("create", query));
+
+        Console.WriteLine(manager.Execute(query).Result);
+
+        // ITypeConfiguration configuration = new NTypeConfiguration(127, 126, 2);
+        //
+        // Console.WriteLine(configuration.Validate("1235,023", 4, 3));
+        // Console.WriteLine(configuration.Validate("1235,023", 3, 3));
+        // Console.WriteLine(configuration.Validate("+1235,023", 3, 3));
+        // Console.WriteLine(configuration.Validate("-1235,023", 3, 3));
+        // Console.WriteLine(configuration.Validate("1235", 10, 3));
+        // Console.WriteLine(configuration.Validate("-1235", 10, 3));
+        // Console.WriteLine(configuration.Validate("+1235", 10, 3));
+        // Console.WriteLine(configuration.Validate("0", 10, 0));
+        // Console.WriteLine(configuration.Validate("0,2", 10, 2));
+        // Console.WriteLine(configuration.Validate("-0,2", 10, 2));
+
 
         //конвертируем в классы
         //List<ITableProperty> result = converter.Convert(properties).ToList();

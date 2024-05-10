@@ -7,28 +7,28 @@ namespace Sqlol.Tables;
 public class StreamTable : ITable
 {
     private ITableMemory _memory;
-    private Func<string, string, bool>? _applyRequired;
 
+    private List<ITableProperty> _properties;
+    
     public string Name { get; }
     public bool HasMemoFile { get; }
     public DateTime LastUpdateDate { get; }
     public int RecordsAmount { get; }
     public short HeaderLength { get; }
     public short RecordLength { get; }
-    public IReadOnlyList<ITableProperty> Properties { get; }
+    public IReadOnlyList<ITableProperty> Properties => _properties;
 
-    public StreamTable(ITableMemory memory, string name, Stream tableStream, List<ITableProperty> properties,
-        Func<string, string, bool>? applyRequired = null)
+    public StreamTable(ITableMemory memory, string name, Stream tableStream, IList<ITableProperty> properties)
     {
-        Name = name;
-        _applyRequired = applyRequired;
         _memory = memory;
         
+        Name = name;
         LastUpdateDate = DateTime.Now;
         HasMemoFile = false;
         RecordsAmount = 0;
         HeaderLength = 32;
         RecordLength = 5;
+        _properties = properties.ToList();
 
         _memory.SaveHeader(this, tableStream);
         tableStream.Dispose();

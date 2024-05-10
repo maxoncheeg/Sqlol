@@ -11,7 +11,23 @@ public class ValidationFactory : IValidationFactory
         switch (keyWord)
         {
             case "create":
-                result = Regex.IsMatch(query, @"^create\stable\s\w{1,11}\s?(.+)$");
+                result = Regex.IsMatch(query, @"^create\stable\s\w{1,11}\s?(.+);?$");
+                break;
+        }
+
+        return result;
+    }
+
+    public string GetTableName(string keyWord, string query)
+    {
+        string result = string.Empty;
+        
+        switch (keyWord)
+        {
+            case "create":
+                result = Regex.Match(query, @"\s\w{1,11}\s?\(").Value;
+                result = result[..^1];
+                result = result.Trim();
                 break;
         }
 
