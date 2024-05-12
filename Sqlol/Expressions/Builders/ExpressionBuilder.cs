@@ -88,20 +88,20 @@ public partial class ExpressionBuilder : IExpressionBuilder {
         return brackets.Count == 0;
     }
 
-    private static string _removeWhitespaces(string condition) {
+    private static string RemoveWhitespaces(string condition) {
         var values = StringValueRegex().Matches(condition);
         var c = 0;
         condition = WhitespaceRegex().Replace(condition, " ");
         return StringValueRegex().Replace(condition, _ => values[c++].Value);
     }
 
-    private bool _checkConditions(string condition) {
+    private bool CheckConditions(string condition) {
         var c = BracketsRegex().Replace(condition, " ").ToLower();
         c = WhitespaceRegex().Replace(c, " ");
         return Regex.Match(c.Trim(), $@"^({FieldPattern}\s?{_comparisonGroup}\s?{ValuePattern}\s{_logicalGroup}\s)*{FieldPattern}\s?{_comparisonGroup}\s?{ValuePattern}$", RegexOptions.IgnoreCase).Success;
     }
     
-    private IExpression _parseCondition(string condition) {
+    private IExpression ParseCondition(string condition) {
         var regex = new Regex(@$"\(([^()]+|(?<Level>\()|(?<-Level>\)))+(?(Level)(?!))\)\s?{_logicalGroup}?", RegexOptions.IgnorePatternWhitespace & RegexOptions.IgnoreCase);
         var conditions = regex.Matches(condition);
         var expressionNext = Regex.Match(condition, $"{_logicalGroup}$", RegexOptions.IgnoreCase).Value.ToLower(); 
@@ -122,7 +122,7 @@ public partial class ExpressionBuilder : IExpressionBuilder {
                 res.Add(new Filter(field, value, operation, next));
             }
             else {
-                res.Add(_parseCondition(EolBracketRegex().Replace(SolBracketRegex().Replace(c, ""), "")));
+                res.Add(ParseCondition(EolBracketRegex().Replace(SolBracketRegex().Replace(c, ""), "")));
             }
         }
         
@@ -135,9 +135,9 @@ public partial class ExpressionBuilder : IExpressionBuilder {
         
         var x = condition.Trim();
 
-        x = _removeWhitespaces(x);
+        x = RemoveWhitespaces(x);
         
-        if (!_checkConditions(condition))
+        if (!CheckConditions(condition))
             throw new ArgumentException("Некорректный формат");
         
         x = Regex.Replace(x, @$"{_logicalGroup}\(", m => m.Value.Replace("(", " ("), RegexOptions.IgnoreCase);
@@ -149,6 +149,6 @@ public partial class ExpressionBuilder : IExpressionBuilder {
         x = Regex.Replace(x, @$"\s{FieldPattern}\s?{_comparisonGroup}\s?{ValuePattern}", m => $" ({SolWhitespaceRegex().Replace(m.ToString(), "")})");
         x = Regex.Replace(x, @$"{FieldPattern}\s?{_comparisonGroup}\s?{ValuePattern}\s", m => $"({EolWhitespaceRegex().Replace(m.ToString(), "")}) ");
         
-        return _parseCondition(x);
+        return ParseCondition(x);
     }
 }
