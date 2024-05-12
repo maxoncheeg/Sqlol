@@ -10,7 +10,7 @@ public class ExpressionsTests
     [TestMethod]
     public void ExpressionBuilder_First_Test()
     {
-        string condition = "(a == 1) or (b == 1) xor (c == 1) and (d == 1)";
+        string condition = "(a = 1) or (b = 1) xor (c = 1) and (d = 1)";
         Console.WriteLine(condition);
 
         IExpressionBuilder builder = new ExpressionBuilder(new KeyWordsConfiguration());
@@ -46,7 +46,7 @@ public class ExpressionsTests
     [TestMethod]
     public void ExpressionBuilder_Second_Test()
     {
-        string condition = "a == 1 or b == 1 xor c == 1 and d == 1";
+        string condition = "a = 1 or b = 1 xor c = 1 and d = 1";
         Console.WriteLine(condition);
 
         IExpressionBuilder builder = new ExpressionBuilder(new KeyWordsConfiguration());
@@ -70,7 +70,7 @@ public class ExpressionsTests
     [TestMethod]
     public void ExpressionBuilder_Third_Test()
     {
-        string condition = "x == 1 and (y == 1 or (z == 1 and x == 1)) or (z == 1 and w == 1)";
+        string condition = "x = 1 and (y = 1 or (z = 1 and x = 1)) or (z = 1 and w = 1)";
         Console.WriteLine(condition);
 
         IExpressionBuilder builder = new ExpressionBuilder(new KeyWordsConfiguration());
@@ -115,7 +115,7 @@ public class ExpressionsTests
     [TestMethod]
     public void ExpressionBuilder_Fourth_Test()
     {
-        string condition = "z!=2 and((t>5)or(x<3 and q==2))and(k==4)";
+        string condition = "z<>2 and((t>5)or(x<3 and q=2))and(k=4)";
         Console.WriteLine(condition);
 
         IExpressionBuilder builder = new ExpressionBuilder(new KeyWordsConfiguration());
@@ -157,7 +157,7 @@ public class ExpressionsTests
     [TestMethod]
     public void ExpressionBuilder_Fifth_Test()
     {
-        string condition = "amerikanecCounter > 15 and russianName = \"полный сосач\" or (americLol = true)";
+        string condition = "amerikanecCounter > 15 and russianName = \"полный  сосач\" or (americLol = true)";
         Console.WriteLine(condition);
 
         IExpressionBuilder builder = new ExpressionBuilder(new KeyWordsConfiguration());
@@ -165,7 +165,7 @@ public class ExpressionsTests
         #region expression
 
         Filter f1 = new Filter("amerikanecCounter", "15",">", "and");
-        Filter f2 = new("russianName", "полный сосач", "=", "or");
+        Filter f2 = new("russianName", "\"полный  сосач\"", "=", "or");
 
 
         Filter f3 = new("americLol", "true","=");
@@ -179,13 +179,15 @@ public class ExpressionsTests
         Assert.IsTrue(CheckExpression(builder.TranslateToExpression(condition), result));
     }
 
-    private bool CheckExpression(IExpression actual, IExpression expected)
-    {
-        for (int i = 0; i < expected.Entities.Count; i++)
-        {
+    private bool CheckExpression(IExpression actual, IExpression expected) {
+        var res = true;
+        for (var i = 0; i < expected.Entities.Count; i++) {
+            if (i >= actual.Entities.Count)
+                return false;
+            
             if (expected.Entities[i] is IFilter expectedFilter && actual.Entities[i] is IFilter actualFilter)
             {
-                return expectedFilter.Field == actualFilter.Field &&
+                res = expectedFilter.Field == actualFilter.Field &&
                        expectedFilter.Operation == actualFilter.Operation &&
                        expectedFilter.Value == actualFilter.Value && 
                        expectedFilter.Next == actualFilter.Next;
@@ -194,11 +196,12 @@ public class ExpressionsTests
                      actual.Entities[i] is IExpression actualExpression)
             {
                 if (expectedExpression.Next != actualExpression.Next) return false;
-                return CheckExpression(expectedExpression, actualExpression);
+                res = CheckExpression(expectedExpression, actualExpression);
                 //Console.WriteLine(e.Next);
             }
-
-            return false;
+            
+            if (!res)
+                return false;
         }
 
         return true;

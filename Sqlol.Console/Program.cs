@@ -157,16 +157,36 @@ public class A
 
 internal class Program
 {
+    public static void Print(IExpression e, int c = 0) {
+        foreach (var x in e.Entities) {
+            if (x is IFilter f) {
+                Console.WriteLine($"{new string('\t', c)}{f.Field} {f.Operation} {f.Value} {f.Next}");
+            }
+            else if (x is IExpression a) {
+                Print(a, c + 1);
+                Console.WriteLine(x.Next);
+            }
+        }
+    }
+    
     public static void Main(string[] args)
     {
         // IQueryManager manager = new QueryManager(reader, validationFactory);
         // Console.WriteLine(manager.CreateTable("create sqlol_primary_table"));
 
-
         IQueryChangesSeparator separator = new QueryChangesSeparator();
         IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
-        IValidationFactory validationFactory = new ValidationFactory();
-        ILogger logger = new SimpleLogger((t, m) => { Console.WriteLine($"{t}: {m}"); });
+        var condition = "z<>2 and((t>5)or(x<3 and q=2))and(k=4)";
+        var b = new ExpressionBuilder(configuration);
+        
+        try {
+            var x = b.TranslateToExpression(condition);
+            // Print(x);
+        }
+        catch (Exception e) {
+            Console.WriteLine("Error: " + e.Message);
+        }
+        
 
         ITablePropertyConverter converter = new TablePropertyConverter(configuration);
         IQueryFactory queryFactory = new QueryFactory(new()
@@ -176,7 +196,28 @@ internal class Program
             
         });
 
-        IQueryManager manager = new QueryManager(validationFactory, queryFactory);
+        // IValidationFactory validationFactory = new ValidationFactory();
+        // ILogger logger = new SimpleLogger((t, m) => { Console.WriteLine($"{t}: {m}"); });
+        //
+        // ITablePropertyConverter converter = new TablePropertyConverter(configuration);
+        // IQueryFactory queryFactory = new QueryFactory(converter, validationFactory, logger);
+        //
+        // IQueryManager manager = new QueryManager(validationFactory, queryFactory);
+        //
+        // //запрос
+        // string query = "create table russia (x C (20), y N (3,5), z L)";
+        // Console.WriteLine(query);
+        // //проверяем валидацию
+        // Console.WriteLine(validationFactory.Validate("create", query) + "\nСвойства:\n");
+        //
+        // // //разбираем на поля
+        // string[] properties = converter.GetStringProperties(query);
+        // foreach (var property in properties)
+        //     Console.WriteLine(property);
+        //
+        // Console.WriteLine("Имя таблицы " + validationFactory.GetTableName("create", query));
+        //
+        // Console.WriteLine(manager.Execute(query).Result);
 
         //запрос
         string createQuery = "create table test1 (name C (8), age N (2,2), isDead L, birth D)";
