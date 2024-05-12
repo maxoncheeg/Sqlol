@@ -9,7 +9,7 @@ using Sqlol.Expressions;
 using Sqlol.Expressions.Builders;
 using Sqlol.Loggers;
 using Sqlol.Queries;
-using Sqlol.Tables.Memory;
+using Sqlol.Queries.Methods;
 using Sqlol.Tables.Properties;
 
 public class Expressions
@@ -159,51 +159,47 @@ internal class Program
 {
     public static void Main(string[] args)
     {
-
         // IQueryManager manager = new QueryManager(reader, validationFactory);
         // Console.WriteLine(manager.CreateTable("create sqlol_primary_table"));
 
 
+        IQueryChangesSeparator separator = new QueryChangesSeparator();
         IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
         IValidationFactory validationFactory = new ValidationFactory();
         ILogger logger = new SimpleLogger((t, m) => { Console.WriteLine($"{t}: {m}"); });
 
         ITablePropertyConverter converter = new TablePropertyConverter(configuration);
-        IQueryFactory queryFactory = new QueryFactory(converter, validationFactory, logger);
+        IQueryFactory queryFactory = new QueryFactory(new()
+        {
+            { "create", new CreateQuery(converter, logger, validationFactory) },
+            { "insert", new InsertQuery(configuration, separator, logger) },
+            
+        });
 
         IQueryManager manager = new QueryManager(validationFactory, queryFactory);
 
         //запрос
-        string query = "create table russia (x C (20), y N (3,5), z L)";
-        Console.WriteLine(query);
+        string createQuery = "create table test1 (name C (8), age N (2,2), isDead L, birth D)";
+        Console.WriteLine(createQuery);
         //проверяем валидацию
-        Console.WriteLine(validationFactory.Validate("create", query) + "\nСвойства:\n");
+        Console.WriteLine(validationFactory.Validate("create", createQuery) + "\nСвойства:\n");
 
         // //разбираем на поля
-        string[] properties = converter.GetStringProperties(query);
+        string[] properties = converter.GetStringProperties(createQuery);
         foreach (var property in properties)
             Console.WriteLine(property);
 
-        Console.WriteLine("Имя таблицы " + validationFactory.GetTableName("create", query));
+        Console.WriteLine("Имя таблицы " + validationFactory.GetTableName("create", createQuery));
 
-        Console.WriteLine(manager.Execute(query).Result);
+        Console.WriteLine(manager.Execute(createQuery).Result);
 
-        // ITypeConfiguration configuration = new NTypeConfiguration(127, 126, 2);
-        //
-        // Console.WriteLine(configuration.Validate("1235,023", 4, 3));
-        // Console.WriteLine(configuration.Validate("1235,023", 3, 3));
-        // Console.WriteLine(configuration.Validate("+1235,023", 3, 3));
-        // Console.WriteLine(configuration.Validate("-1235,023", 3, 3));
-        // Console.WriteLine(configuration.Validate("1235", 10, 3));
-        // Console.WriteLine(configuration.Validate("-1235", 10, 3));
-        // Console.WriteLine(configuration.Validate("+1235", 10, 3));
-        // Console.WriteLine(configuration.Validate("0", 10, 0));
-        // Console.WriteLine(configuration.Validate("0,2", 10, 2));
-        // Console.WriteLine(configuration.Validate("-0,2", 10, 2));
-
-
-        //конвертируем в классы
-        //List<ITableProperty> result = converter.Convert(properties).ToList();
-        //List<ITableProperty> result = converter.Convert(query).ToList();
+        string insertQuery1 = "insert into test1 (name, age, isDead, birth) valUes(\"john\", 24.5, T, 10050606)";
+        string insertQuery2 = "insert into test1 (age, isDead) valUes(-7, f)";
+        string insertQuery3 = "insert into test1 (name) valUes(\"american\")";
+        
+        Console.WriteLine(manager.Execute(insertQuery1).Result);
+        Console.WriteLine(manager.Execute(insertQuery2).Result);
+        Console.WriteLine(manager.Execute(insertQuery3).Result);
+        manager.Dispose();
     }
 }

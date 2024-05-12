@@ -7,6 +7,8 @@ public class CTypeConfiguration(byte width, byte precision, byte sizeOffset)
 {
     public override bool Validate(string value, byte width = 1, byte precision = 0)
     {
+        if (value[0] != '"' || value[^1] != '"') return false;
+        value = value.Trim('"');
         if (value.Length > Width + Precision + SizeOffset) return false;
         if (width > Width) return false;
         if (precision > 0) throw new ArgumentException("C type has not precision");

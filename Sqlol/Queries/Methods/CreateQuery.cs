@@ -1,7 +1,6 @@
 ﻿using Sqlol.Configurations.Factories;
 using Sqlol.Loggers;
 using Sqlol.Tables;
-using Sqlol.Tables.Memory;
 using Sqlol.Tables.Properties;
 
 namespace Sqlol.Queries.Methods;
@@ -26,7 +25,7 @@ public class CreateQuery(ITablePropertyConverter converter, ILogger logger, IVal
         try
         {
             Stream stream = File.Create(tableName + ".dbf");
-            ITable newTable = new StreamTable(new TableMemory(), tableName, stream, properties);
+            ITable newTable = new StreamTable( tableName, stream, properties);
             return new QueryResult(1, newTable);
         }
         catch (Exception e)

@@ -1,42 +1,120 @@
-﻿using Sqlol.Expressions;
-using Sqlol.Tables.Memory;
+﻿using System.Text;
+using Sqlol.Expressions;
 using Sqlol.Tables.Properties;
 
 namespace Sqlol.Tables;
 
 public class StreamTable : ITable
 {
-    private ITableMemory _memory;
+    private readonly Stream _tableStream;
 
     private List<ITableProperty> _properties;
-    
+
     public string Name { get; }
     public bool HasMemoFile { get; }
     public DateTime LastUpdateDate { get; }
-    public int RecordsAmount { get; }
+    public int RecordsAmount { get; private set; }
     public short HeaderLength { get; }
     public short RecordLength { get; }
     public IReadOnlyList<ITableProperty> Properties => _properties;
 
-    public StreamTable(ITableMemory memory, string name, Stream tableStream, IList<ITableProperty> properties)
+    public StreamTable(string name, Stream tableStream, IList<ITableProperty> properties)
     {
-        _memory = memory;
-        
         Name = name;
         LastUpdateDate = DateTime.Now;
-        HasMemoFile = false;
-        RecordsAmount = 0;
-        HeaderLength = 32;
-        RecordLength = 5;
+
+        HeaderLength = (short)(32 + 14 * properties.Count);
+        RecordLength = (short)(properties.Sum(p => (short)p.Size) + 1);
         _properties = properties.ToList();
 
-        _memory.SaveHeader(this, tableStream);
-        tableStream.Dispose();
+        // ??
+        RecordsAmount = 0;
+        HasMemoFile = File.Exists($"{name}.dbt");
+
+        _tableStream = tableStream;
+
+        CreateTable();
+
+        //tableStream.Dispose();
     }
 
     public bool Insert(IList<Tuple<string, string>> data)
     {
-        throw new NotImplementedException();
+        try
+        {
+            _tableStream.Seek(HeaderLength + RecordLength * RecordsAmount, SeekOrigin.Begin);
+
+            List<byte> buffer = new();
+            // Пометка удаления.
+            //_tableStream.Write([20]);
+            buffer.Add(32);
+            
+            foreach (var property in Properties)
+            {
+                var tuple = data.FirstOrDefault(t => t.Item1 == property.Name);
+
+                if (tuple != null)
+                {
+                    string value = tuple.Item2;
+                    value = value.Trim('"');
+                    if (value.Length > property.Size) throw new ArgumentException("Поле больше позволяемой длины");
+
+                    switch (property.Type)
+                    {
+                        case 'C':
+                            if (value.Length < property.Size)
+                                value += new string('\0', property.Size - value.Length);
+                            break;
+                        case 'N':
+                            if (value.Length < property.Size)
+                            {
+                                char sign = '+';
+                                if (value[0] == '-' || value[0] == '+')
+                                {
+                                    sign = value[0];
+                                    value = value[^1..];
+                                }
+
+                                string left, right = "";
+                                if (value.Contains('.'))
+                                {
+                                    left = value[..(value.IndexOf('.'))];
+                                    right = value[(value.IndexOf('.') + 1)..];
+                                }
+                                else left = value;
+
+                                if (left.Length < property.Width)
+                                    left = new string('0', property.Width - left.Length) + left;
+                                if (right.Length < property.Precision)
+                                    right = right + new string('0', property.Width - right.Length);
+
+                                value = sign + left + '.' + right;
+                            }
+
+                            break;
+                    }
+
+                    //_tableStream.Write(Encoding.ASCII.GetBytes(value));
+                    buffer.AddRange(Encoding.ASCII.GetBytes(value));
+                }
+                else
+                {
+                    // todo: значения по умолчанию для каждого типа
+                    //_tableStream.Write(Encoding.ASCII.GetBytes(new string('\0', property.Width)));
+                    buffer.AddRange(Encoding.ASCII.GetBytes(new string('\0', property.Size)));
+                }
+            }
+
+            _tableStream.Write(buffer.ToArray());
+        }
+        catch
+        {
+            throw;
+            return false;
+        }
+
+        RecordsAmount++;
+        return true;
     }
 
     public ITableData Select(IExpression? expression = null)
@@ -91,6 +169,45 @@ public class StreamTable : ITable
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        _tableStream.Dispose();
     }
+
+    private void CreateTable()
+    {
+        _tableStream.Seek(0, SeekOrigin.Begin);
+
+        _tableStream.Write(HasMemoFile ? [131] : [3]);
+
+        byte year = (byte)(LastUpdateDate.Year % 100);
+        byte month = (byte)(LastUpdateDate.Month % 100);
+        byte day = (byte)(LastUpdateDate.Day % 100);
+        byte[] dateBuffer = [year, month, day];
+
+        _tableStream.Write(dateBuffer);
+
+        byte[] recordsAmount = BitConverter.GetBytes(RecordsAmount);
+        _tableStream.Write(recordsAmount);
+
+        byte[] lengthInBytes = BitConverter.GetBytes(HeaderLength);
+        _tableStream.Write(lengthInBytes);
+
+        byte[] recordLength = BitConverter.GetBytes(RecordLength);
+        _tableStream.Write(recordLength);
+
+        for (int i = 0; i < 20; i++)
+            _tableStream.Write([0]);
+
+        foreach (var property in Properties)
+        {
+            string name = property.Name;
+            while (name.Length < 11) name += '\0';
+
+            _tableStream.Write(Encoding.ASCII.GetBytes(name));
+            _tableStream.Write([(byte)property.Type]);
+            _tableStream.Write([(byte)property.Size]);
+            _tableStream.Write([(byte)property.Index]);
+        }
+    }
+
+    //private void AddRecord()
 }

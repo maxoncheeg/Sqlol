@@ -10,7 +10,7 @@ public class DTypeConfiguration(byte width, byte precision, byte sizeOffset)
         if (value.Length > Width + Precision + SizeOffset) return false;
         if (width > Width) return false;
         if (precision > 0) throw new ArgumentException("D type has not precision");
-        if (width <= 0) throw new ArgumentException("width cannot be less than zero");
+        if (width < 0) throw new ArgumentException("width cannot be less than zero");
 
         string pattern = @"^\d{8}$";
 

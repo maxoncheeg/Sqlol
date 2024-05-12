@@ -19,6 +19,6 @@ public class OperationFactory : IOperationFactory
     {
         if (_operations.TryGetValue(operation, out var method))
             return method;
-        throw new ApplicationException("command can't be found");
+        throw new ApplicationException("операция не найдена");
     }
 }

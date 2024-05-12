@@ -1,7 +1,6 @@
 ﻿using Sqlol.Configurations.Factories;
 using Sqlol.Queries.Methods;
 using Sqlol.Tables;
-using Sqlol.Tables.Memory;
 
 namespace Sqlol.Queries;
 
@@ -31,7 +30,12 @@ public class QueryManager : IQueryManager
         ITable? table = _openedTables.FirstOrDefault(t => t.Name == tableName);
 
         IQuery query = _queryFactory.GetQuery(command);
-        return query.Execute(textQuery, table);
+        IQueryResult result = query.Execute(textQuery, table);
+        
+        if (table == null && result.Table != null)
+            _openedTables.Add(result.Table);
+        
+        return result;
     }
 
 

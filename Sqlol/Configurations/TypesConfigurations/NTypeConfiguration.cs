@@ -17,7 +17,7 @@ public class NTypeConfiguration(byte width, byte precision, byte sizeOffset)
 
         if (precision > 0)
         {
-            pattern += @"}(|,\d{1,";
+            pattern += @"}(|.\d{1,";
             pattern += precision;
             pattern += @"})$";
         }

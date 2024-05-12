@@ -11,7 +11,10 @@ public class ValidationFactory : IValidationFactory
         switch (keyWord)
         {
             case "create":
-                result = Regex.IsMatch(query, @"^create\stable\s\w{1,11}\s?(.+);?$");
+                result = Regex.IsMatch(query, @"^create\stable\s\w+\s?(.+);?$", RegexOptions.IgnoreCase);
+                break;
+            case "insert":
+                result = Regex.IsMatch(query, @"^insert\sinto\s\w+\s?\(.+\)\s?values\s?\(.+\)$", RegexOptions.IgnoreCase);
                 break;
         }
 
@@ -25,10 +28,12 @@ public class ValidationFactory : IValidationFactory
         switch (keyWord)
         {
             case "create":
-                result = Regex.Match(query, @"\s\w{1,11}\s?\(").Value;
+            case "insert":
+                result = Regex.Match(query, @"\s\w+\s?\(").Value;
                 result = result[..^1];
                 result = result.Trim();
                 break;
+                
         }
 
         return result;
