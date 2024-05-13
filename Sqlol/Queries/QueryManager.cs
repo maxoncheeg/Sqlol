@@ -32,8 +32,10 @@ public class QueryManager : IQueryManager
         IQuery query = _queryFactory.GetQuery(command);
         IQueryResult result = query.Execute(textQuery, table);
         
-        if (table == null && result.Table != null)
+        if (result.Result == 1 && table == null && result.Table != null)
             _openedTables.Add(result.Table);
+        else if (result.Result == 1 && table != null && result.Table == null)
+            _openedTables.Remove(table);
         
         return result;
     }

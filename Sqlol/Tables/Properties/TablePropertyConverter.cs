@@ -19,9 +19,9 @@ public class TablePropertyConverter : ITablePropertyConverter
 
     public string[] GetStringProperties(string query)
     {
-        string pattern = @"\w{1,11}\s";
+        string pattern = @"\w{1,11}\s+";
         pattern += _types;
-        pattern += @"\s?(\(\d+,\d+\)|\(\d+\)|)";
+        pattern += @"\s*(\(\s*\d+\s*,\s*\d+\s*\)|\(\s*\d+\s*\)|)";
         var matches = Regex.Matches(query, pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled);
         return matches.Select(x => x.Value).ToArray();
     }
@@ -38,7 +38,7 @@ public class TablePropertyConverter : ITablePropertyConverter
         foreach (var item in properties)
         {
             string name = item.Substring(0, item.IndexOf(' '));
-            char type = item.Substring(item.IndexOf(' ') + 1, 1)[0];
+            char type = item.Substring(item.IndexOf(' ') + 1, 1).ToUpperInvariant()[0];
             string width = string.Empty, precision = string.Empty;
             if (item.Contains('('))
             {

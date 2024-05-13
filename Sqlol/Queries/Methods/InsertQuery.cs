@@ -27,7 +27,7 @@ public class InsertQuery : IQuery
 
         foreach (var tuple in changes)
         {
-            var property = table.Properties.FirstOrDefault(prop => prop.Name == tuple.Item1);
+            var property = table.Properties.FirstOrDefault(prop => prop.Name.ToLowerInvariant() == tuple.Item1.ToLowerInvariant());
             
             if (property == null)
             {
