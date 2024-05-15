@@ -4,6 +4,11 @@ public class GreaterOperation : IOperation
 {
     public bool GetResult(string actual, string expected)
     {
+        if (actual[0] == '+' && expected[0] == '-') return true;
+        if (actual[0] == '-' && expected[0] == '+') return false;
+        actual = actual[1..];
+        expected = expected[1..];
+        
         bool isActualLonger = actual.Length > expected.Length;
         int length = isActualLonger ? expected.Length : actual.Length;
         

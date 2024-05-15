@@ -10,37 +10,48 @@ public class InsertQuery : IQuery
     private readonly IKeyWordsConfiguration _configuration;
     private readonly ILogger _logger;
     private readonly IQueryChangesSeparator _separator;
-    
+
     public InsertQuery(IKeyWordsConfiguration configuration, IQueryChangesSeparator separator, ILogger logger)
     {
         _configuration = configuration;
         _separator = separator;
         _logger = logger;
     }
-    
+
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
         if (table == null) return new QueryResult(0, null);
 
         string keyWord = textQuery[..textQuery.IndexOf(' ')];
-        var changes = _separator.GetChangesFromQuery(keyWord, textQuery);
+        IList<Tuple<string, string>> changes;
+        try
+        {
+            changes = _separator.GetChangesFromQuery(keyWord, textQuery);
+        }
+        catch (Exception e)
+        {
+            _logger.SendMessage("Ошибка", e.Message);
+            return new QueryResult(0, table);
+        }
 
         foreach (var tuple in changes)
         {
-            var property = table.Properties.FirstOrDefault(prop => prop.Name.ToLowerInvariant() == tuple.Item1.ToLowerInvariant());
-            
+            var property =
+                table.Properties.FirstOrDefault(prop => prop.Name.ToLowerInvariant() == tuple.Item1.ToLowerInvariant());
+
             if (property == null)
             {
                 _logger.SendMessage("Ошибка", $"Таблица {table.Name} не имеет поля {tuple.Item1}");
-                return new QueryResult(0, null);
+                return new QueryResult(0, table);
             }
+
             if (!_configuration.Types[property.Type].Validate(tuple.Item2, property.Width, property.Precision))
             {
                 _logger.SendMessage("Ошибка", $"Значение поля {tuple.Item1} не соотвествует типу {property.Type}");
-                return new QueryResult(0, null);
+                return new QueryResult(0, table);
             }
         }
-
+        
         return new QueryResult(table.Insert(changes) ? 1 : 0, table);
     }
 }

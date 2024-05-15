@@ -31,6 +31,9 @@ public class ValidationFactory : IValidationFactory
                 string temp = Regex.Match(query, @"\(.+\)").Value;
                 result = Regex.IsMatch(temp, @"^\(\s*" + _typePattern + @"\s*(|(,\s*" + _typePattern + @"\s*)+)\)$", RegexOptions.IgnoreCase);
                 break;
+            case "select":
+                result = Regex.IsMatch(query, @"^select\s+(\*|\w{1,11}\s*(|,\s*\w{1,11}\s*)*)\s+from\s+\w+(|\s+where\s+.+)$", RegexOptions.IgnoreCase);
+                break;
             case "insert":
                 result = Regex.IsMatch(query, @"^insert\s+into\s+\w+\s*\(.+\)\s*values\s*\(.+\)$",
                     RegexOptions.IgnoreCase);
@@ -63,6 +66,10 @@ public class ValidationFactory : IValidationFactory
                 result = Regex.Match(query, @"\s+\w+").Value;
                 result = Regex.Match(result, @"\w+").Value;
                 result = result.Trim();
+                break;
+            case "select":
+                result = Regex.Match(query, @"from\s+\w+").Value;
+                result = result.Replace("from", "").Trim();
                 break;
         }
 

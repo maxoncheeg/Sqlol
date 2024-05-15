@@ -19,6 +19,7 @@ public class TablePropertyConverter : ITablePropertyConverter
 
     public string[] GetStringProperties(string query)
     {
+        query = Regex.Match(query, @"\(.+\)").Value;
         string pattern = @"\w{1,11}\s+";
         pattern += _types;
         pattern += @"\s*(\(\s*\d+\s*,\s*\d+\s*\)|\(\s*\d+\s*\)|)";

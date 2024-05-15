@@ -175,22 +175,31 @@ internal class Program
 
     public static void Main(string[] args)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        
         IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
         IValidationFactory validation = new ValidationFactory(configuration);
-        IQueryChangesSeparator separator = new QueryChangesSeparator();
+        IQueryChangesSeparator separator = new QueryChangesSeparator(configuration);
+        IOperationFactory operationFactory = new OperationFactory();
+
+        configuration.StringOperations.Add("like");
+        configuration.StringOperations.Add("not like");
+        IExpressionBuilder builder = new ExpressionBuilder(configuration);
+        //
+        // string x = "x like \"%amerika\" or y not like \"%russia%\"";
+        // Print(builder.TranslateToExpression(x));
 
         ITablePropertyConverter converter = new TablePropertyConverter(configuration);
         ILogger logger = new SimpleLogger((t, m) => Console.WriteLine(t + ": " + m));
 
         IQueryFactory queryFactory = new QueryFactory(new()
         {
-            { "create", new CreateQuery(converter, logger, validation) },
-            { "open", new OpenQuery(validation, logger) },
+            { "create", new CreateQuery(converter, logger, validation, operationFactory) },
+            { "open", new OpenQuery(validation, logger, operationFactory) },
             { "close", new CloseQuery() },
             { "insert", new InsertQuery(configuration, separator, logger) },
+            { "select", new SelectQuery(builder) }
         });
-        
-        // create table x(a c(3), b n(2,4), c L)
 
         IQueryManager manager = new QueryManager(validation, queryFactory);
 
@@ -200,17 +209,23 @@ internal class Program
             Console.Write("Sqlol> ");
             query = Console.ReadLine();
             if (query == null) continue;
-
+        
             query = query.Trim().Trim(';').Trim();
-
+        
             var result = manager.Execute(query);
-
+            
+            if(result.Data != null)
+                Console.WriteLine(result.Data.GetStringTable());
+        
             if (result.Result > 0)
                 Console.WriteLine("Команда выполнена успешно.");
             else
                 Console.WriteLine("Команда не выполнена.");
         }
         
+        
+        
+
         manager.Dispose();
     }
 }

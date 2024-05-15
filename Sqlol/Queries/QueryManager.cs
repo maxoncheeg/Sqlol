@@ -27,7 +27,7 @@ public class QueryManager : IQueryManager
         }
 
         string tableName = _validationFactory.GetTableName(command, textQuery);
-        ITable? table = _openedTables.FirstOrDefault(t => t.Name == tableName);
+        ITable? table = _openedTables.FirstOrDefault(t => string.Equals(t.Name, tableName, StringComparison.InvariantCultureIgnoreCase));
 
         IQuery query = _queryFactory.GetQuery(command);
         IQueryResult result = query.Execute(textQuery, table);

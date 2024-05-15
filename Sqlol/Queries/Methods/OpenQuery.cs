@@ -4,7 +4,7 @@ using Sqlol.Tables;
 
 namespace Sqlol.Queries.Methods;
 
-public class OpenQuery(IValidationFactory validation, ILogger logger) : IQuery
+public class OpenQuery(IValidationFactory validation, ILogger logger, IOperationFactory operationFactory) : IQuery
 {
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
@@ -16,14 +16,16 @@ public class OpenQuery(IValidationFactory validation, ILogger logger) : IQuery
             return new QueryResult(0, null);
         }
 
+        Stream? stream = null;
         try 
         {
-            Stream stream = File.Open(tableName + ".dbf", FileMode.Open);
-            ITable newTable = new StreamTable( tableName, stream);
+            stream = File.Open(tableName + ".dbf", FileMode.Open);
+            ITable newTable = new StreamTable( tableName, stream, operationFactory);
             return new QueryResult(1, newTable);
         }
         catch (Exception e)
         {
+            stream?.Dispose();
             Console.WriteLine(e.Message);
             return new QueryResult(0, null);
         }

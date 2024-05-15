@@ -4,6 +4,9 @@ namespace Sqlol.Configurations;
 
 public class KeyWordsConfiguration : IKeyWordsConfiguration
 {
+    private const string DoubleQuote = "\"";
+    public string ValuePattern => $@"([\w\d\.\+\-]+|{DoubleQuote}.*{DoubleQuote})";
+    
     public IDictionary<char, ITypeConfiguration> Types { get; set; } = new Dictionary<char, ITypeConfiguration>()
     {
         { 'C', new CTypeConfiguration(255, 0, 0) },
