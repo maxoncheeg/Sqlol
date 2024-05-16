@@ -2,7 +2,7 @@
 
 public interface ITableProperty
 {
-    public string Name { get; }
+    public string Name { get; set; }
     public char Type { get; }
     public byte Size { get; }
     public byte Index { get; }
