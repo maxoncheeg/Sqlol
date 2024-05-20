@@ -132,7 +132,7 @@ public class StreamTable : ITable
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
                 if (property.Type == 'C')
-                    value = '"' + value + '"';
+                    value = '"' + value.Trim('\0') + '"';
                 variables.Add(value);
 
                 offset += property.Size;
@@ -734,7 +734,7 @@ public class StreamTable : ITable
 
     private string ConvertToC(string value, ITableProperty property)
     {
-        if(value.Length > 2)
+        if(value.Length >= 2)
             value = value[1..^1];
         if (value.Length < property.Size)
             value += new string('\0', property.Size - value.Length);

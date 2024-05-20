@@ -14,8 +14,22 @@ public class TableData : ITableData
     {
         if (record.Count != _columns.Count) return false;
 
+        // todo: при добавлении записи, ты должна сравнивать ее значения с уже самой длинной на данный момент переменной(для ускорения расчетов)
+
         _values.Add([..record]);
         return true;
+    }
+
+    public string GetHeader()
+    {
+        // todo: благодоря AddRecord ты уже будешь знать длинну столбцов, по ней и выстроить таблицу
+        throw new NotImplementedException();
+    }
+
+    public IEnumerator<string> GetRecords()
+    {
+        // todo: благодоря AddRecord ты уже будешь знать длинну столбцов, по ней и выстроить таблицу
+        throw new NotImplementedException();
     }
 
     public string GetStringTable()
@@ -32,6 +46,7 @@ public class TableData : ITableData
                 result += $"|\t" + variable;
             result += Environment.NewLine;
         }
+
         result += Environment.NewLine;
 
         return result;

@@ -164,16 +164,14 @@ internal class Program
         IValidationFactory validation = new ValidationFactory(configuration);
         IQueryChangesSeparator separator = new QueryChangesSeparator(configuration);
         IOperationFactory operationFactory = new OperationFactory();
-
-        configuration.StringOperations.Add("like");
-        configuration.StringOperations.Add("not like");
         IExpressionBuilder builder = new ExpressionBuilder(configuration);
-        //
-        // string x = "x like \"%amerika\" or y not like \"%russia%\"";
-        // Print(builder.TranslateToExpression(x));
-
         ITablePropertyConverter converter = new TablePropertyConverter(configuration);
-        ILogger logger = new SimpleLogger((t, m) => Console.WriteLine(t + ": " + m));
+        ILogger logger = new SimpleLogger((t, m) =>
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine(t + ": " + m);
+            Console.ForegroundColor = ConsoleColor.White;
+        });
 
         IQueryFactory queryFactory = new QueryFactory(new()
         {
@@ -197,7 +195,9 @@ internal class Program
         string? query = "";
         while (query != "exit")
         {
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("SQL> ");
+            Console.ForegroundColor = ConsoleColor.White;
             query = Console.ReadLine();
             if (query == null) continue;
 
@@ -211,9 +211,15 @@ internal class Program
                 Console.WriteLine(result.Data.GetStringTable());
 
             if (result.Result > 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Команда выполнена успешно.");
+            }
             else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Команда не выполнена.");
+            }
         }
 
 
