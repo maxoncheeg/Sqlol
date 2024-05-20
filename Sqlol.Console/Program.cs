@@ -209,14 +209,13 @@ internal class Program
 
             if (result.Data != null)
             { 
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine(result.Data.GetHeader());
+                Console.ForegroundColor = ConsoleColor.White;
+                
                 using IEnumerator<string> enumerator = result.Data.GetRecords();
-
                 while (enumerator.MoveNext())
                     Console.WriteLine(enumerator.Current);
-
-                //foreach (var row in result.Data.Values)
-                //    Console.WriteLine(result.Data.GetRecords());
             }
 
             if (result.Result > 0)
