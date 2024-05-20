@@ -7,17 +7,15 @@ namespace Sqlol.Queries;
 
 public class QueryFactory : IQueryFactory
 {
-    private Dictionary<string, IQuery> _queries = [];
+    private readonly Dictionary<string, IQuery> _queries = [];
 
     public QueryFactory(Dictionary<string, IQuery> queries)
     {
         _queries = queries;
     }
     
-    public IQuery GetQuery(string keyWord)
+    public IQuery? GetQuery(string keyWord)
     {
-        if (_queries.TryGetValue(keyWord.ToLowerInvariant(), out var query))
-            return query;
-        throw new ApplicationException("запроса не существует");
+        return _queries.GetValueOrDefault(keyWord);
     }
 }

@@ -10,9 +10,9 @@ public class NTypeConfiguration(byte width, byte precision, byte sizeOffset)
         if (value.Length > Width + Precision + SizeOffset) return false;
         if (width > Width) return false;
         if (precision > Precision) return false;
-        if (width <= 0) throw new ArgumentException("width cannot be less than zero");
+        if (width <= 0 && precision <= 0) throw new ArgumentException("width and precision cannot be less than zero");
 
-        string pattern = @"^[\+\-]?\d{1,";
+        string pattern = @"^[\+\-]?\d{0,";
         pattern += width;
 
         if (precision > 0)

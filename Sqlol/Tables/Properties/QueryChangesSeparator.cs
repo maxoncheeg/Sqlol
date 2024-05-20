@@ -13,14 +13,15 @@ public class QueryChangesSeparator(IKeyWordsConfiguration configuration) : IQuer
         {
             case "update":
             {
-                var matches = Regex.Matches(query, @"\w{1,11}\s?=\s?" + "\"?" + @"(\w+|\d+)" + "\"?").ToList();
-                foreach (var match in matches)
-                {
-                    var variable = match.Value.Substring(0, match.Value.IndexOf('=')).Trim();
-                    var value = match.Value.Substring(match.Value.IndexOf('=') + 1).Trim();
-
-                    changes.Add(new Tuple<string, string>(variable, value));
-                }
+                query = Regex.Match(query, @"set\s+.+\s+where").Value;
+                var variables = Regex.Matches(query, @"\w{1,11}\s*=").Select(m => m.Value.TrimEnd('=').Trim()).ToList();
+                var values = Regex.Matches(query, $@"=\s*{configuration.ValuePattern}").Select(m => m.Value.TrimStart('=').Trim()).ToList();
+                
+                if (variables.Count != values.Count)
+                    throw new Exception("Количество столбцов не соотвествует количеству значений");
+                
+                for (int i = 0; i < variables.Count; i++)
+                    changes.Add(new Tuple<string, string>(variables[i], values[i]));
             }
                 break;
             case "insert":
@@ -32,7 +33,9 @@ public class QueryChangesSeparator(IKeyWordsConfiguration configuration) : IQuer
 
                 // List<string> secondBracket = GetStringValues(secondBracketText);
                 List<string> values = [];
-                var m = Regex.Matches(secondBracketText, $@"{configuration.ValuePattern}\,\s?");
+                
+
+                var m = Regex.Matches(secondBracketText, $@"{configuration.ValuePattern}\,\s*");
                 foreach (Match t in m)
                     values.Add(t.Value.TrimEnd(' ').TrimEnd(','));
                 values.Add(Regex.Match(secondBracketText, $@"(\,|^\s*)\s*{configuration.ValuePattern}$").Value

@@ -21,6 +21,6 @@ public class LessOperation : IOperation
             if (actual[i] < expected[i]) return true;
         }
 
-        return !isActualLonger;
+        return false;
     }
 }

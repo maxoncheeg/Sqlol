@@ -5,7 +5,7 @@ namespace Sqlol.Configurations;
 public class KeyWordsConfiguration : IKeyWordsConfiguration
 {
     private const string DoubleQuote = "\"";
-    public string ValuePattern => $@"([\w\d\.\+\-]+|{DoubleQuote}.*{DoubleQuote})";
+    public string ValuePattern => $@"([\w\d\.\+\-\?]+|{DoubleQuote}[^{DoubleQuote}]*{DoubleQuote})";
     
     public IDictionary<char, ITypeConfiguration> Types { get; set; } = new Dictionary<char, ITypeConfiguration>()
     {
@@ -17,7 +17,7 @@ public class KeyWordsConfiguration : IKeyWordsConfiguration
     };
 
     public IList<string> LogicalOperations { get; set; } = ["or", "and", "xor"];
-    public IList<string> NumberOperations { get; set; } = ["=", "<>", ">", "<", ">=", "<="];
+    public IList<string> NumberOperations { get; set; } = ["=", "<>", ">=", "<=", ">", "<"];
     public IList<string> StringOperations { get; set; } = ["=", "<>"];
 
     public IList<string> PrimaryKeyWords { get; set; } =

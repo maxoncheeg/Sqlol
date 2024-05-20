@@ -1,4 +1,5 @@
-﻿using Sqlol.Configurations.Factories;
+﻿using System.Text.RegularExpressions;
+using Sqlol.Configurations.Factories;
 using Sqlol.Loggers;
 using Sqlol.Tables;
 using Sqlol.Tables.Properties;
@@ -9,7 +10,7 @@ public class CreateQuery(ITablePropertyConverter converter, ILogger logger, IVal
 {
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
-        IList<ITableProperty> properties = converter.Convert(textQuery);
+        IList<ITableProperty> properties = converter.Convert(Regex.Match(textQuery, @"\(.+\)").Value);
         string tableName = validation.GetTableName(textQuery[..textQuery.IndexOf(' ')],textQuery);
         
         if (File.Exists(tableName + ".dbf"))

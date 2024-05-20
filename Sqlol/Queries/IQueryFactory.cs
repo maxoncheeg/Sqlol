@@ -4,5 +4,5 @@ namespace Sqlol.Queries;
 
 public interface IQueryFactory
 {
-    public IQuery GetQuery(string keyWord);
+    public IQuery? GetQuery(string keyWord);
 }

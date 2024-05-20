@@ -1,7 +1,5 @@
-﻿using System.ComponentModel.Design;
-using System.Text;
+﻿using System.Text;
 using Sqlol.Configurations.Factories;
-using Sqlol.Configurations.Factories.Operations;
 using Sqlol.Expressions;
 using Sqlol.Tables.Properties;
 
@@ -10,9 +8,10 @@ namespace Sqlol.Tables;
 public class StreamTable : ITable
 {
     private readonly IOperationFactory _operationFactory;
-    private readonly Stream _tableStream;
+    private Stream _tableStream;
 
-    private List<ITableProperty> _properties;
+    private readonly List<ITableProperty> _properties;
+    private int _readData;
 
     public string Name { get; }
     public bool HasMemoFile { get; private set; }
@@ -29,7 +28,7 @@ public class StreamTable : ITable
         LastUpdateDate = DateTime.Now;
 
         HeaderLength = (short)(32 + 16 * properties.Count);
-        RecordLength = (short)(properties.Sum(p => (short)p.Size) + 1);
+        RecordLength = (short)(properties.Sum(p => p.Size) + 1);
         _properties = properties.ToList();
 
         // ??
@@ -38,7 +37,7 @@ public class StreamTable : ITable
 
         _tableStream = tableStream;
 
-        CreateTable();
+        UpdateHeader(true);
 
         //tableStream.Dispose();
     }
@@ -52,19 +51,19 @@ public class StreamTable : ITable
         _tableStream.Seek(0, SeekOrigin.Begin);
         byte[] buffer = new byte[32];
 
-        _tableStream.Read(buffer, 0, 1);
+        _readData = _readData = _tableStream.Read(buffer, 0, 1);
         HasMemoFile = buffer[0] == 131;
 
-        _tableStream.Read(buffer, 0, 3);
+        _readData = _tableStream.Read(buffer, 0, 3);
         LastUpdateDate = new(2000 + buffer[0], buffer[1], buffer[2]);
 
-        _tableStream.Read(buffer, 0, sizeof(int));
+        _readData = _tableStream.Read(buffer, 0, sizeof(int));
         RecordsAmount = BitConverter.ToInt32(buffer, 0);
 
-        _tableStream.Read(buffer, 0, sizeof(short));
+        _readData = _tableStream.Read(buffer, 0, sizeof(short));
         HeaderLength = BitConverter.ToInt16(buffer, 0);
 
-        _tableStream.Read(buffer, 0, sizeof(short));
+        _readData = _tableStream.Read(buffer, 0, sizeof(short));
         RecordLength = BitConverter.ToInt16(buffer, 0);
 
         _tableStream.Seek(20, SeekOrigin.Current);
@@ -75,11 +74,11 @@ public class StreamTable : ITable
         {
             ITableProperty property;
 
-            _tableStream.Read(buffer, 0, 11);
+            _readData = _tableStream.Read(buffer, 0, 11);
             var propertyName = Encoding.GetEncoding(1251).GetString(buffer, 0, 11);
             propertyName = propertyName.Trim('\0').Trim();
 
-            _tableStream.Read(buffer, 0, 5);
+            _readData = _tableStream.Read(buffer, 0, 5);
 
 
             property = new TableProperty(propertyName, (char)buffer[0], buffer[1], buffer[2], buffer[4], buffer[3]);
@@ -102,7 +101,6 @@ public class StreamTable : ITable
         catch
         {
             throw;
-            return false;
         }
 
         return true;
@@ -118,23 +116,23 @@ public class StreamTable : ITable
         ITableData data = new TableData([..columns]);
         _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
         string[] result = new string[columns.Count];
-        List<string> variables = [];
-
 
         byte[] buffer = new byte[RecordLength];
         int count = RecordsAmount;
-        while (count > 0)
+        while (count-- > 0)
         {
-            _tableStream.Read(buffer, 0, RecordLength);
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
 
             bool onDelete = buffer[0] == '*';
             if (onDelete) continue;
 
             int offset = 1;
-            variables = [];
+            List<string> variables = [];
             foreach (var property in Properties)
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                if (property.Type == 'C')
+                    value = '"' + value + '"';
                 variables.Add(value);
 
                 offset += property.Size;
@@ -155,7 +153,6 @@ public class StreamTable : ITable
             if (expression != null && CheckExpression(expression, Properties.Select(p => p.Name).ToList(), variables))
                 data.AddRecord(record);
             else if (expression == null) data.AddRecord(record);
-            count--;
         }
 
         return data;
@@ -168,9 +165,9 @@ public class StreamTable : ITable
 
         byte[] buffer = new byte[RecordLength];
         int count = RecordsAmount;
-        while (count > 0)
+        while (count-- > 0)
         {
-            _tableStream.Read(buffer, 0, RecordLength);
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
             bool onDelete = buffer[0] == '*';
             if (onDelete) continue;
 
@@ -186,7 +183,7 @@ public class StreamTable : ITable
             if (expression != null && CheckExpression(expression, Properties.Select(p => p.Name).ToList(), variables) ||
                 expression == null)
             {
-                _tableStream.Seek(-14, SeekOrigin.Current);
+                _tableStream.Seek(-RecordLength, SeekOrigin.Current);
 
                 List<Tuple<string, string>> data = [];
 
@@ -198,12 +195,11 @@ public class StreamTable : ITable
                     else
                         data.Add(new(Properties[i].Name, variables[i]));
 
+                RecordsAmount--;
                 WriteRecord(data);
 
                 amount++;
             }
-
-            count--;
         }
 
         return amount;
@@ -213,8 +209,16 @@ public class StreamTable : ITable
     {
         var data = Select();
         var truncateCount = RecordsAmount - data.Values.Count;
+        if (truncateCount == 0) return truncateCount;
         RecordsAmount = 0;
-        
+
+        _tableStream.Close();
+
+        File.WriteAllText(Name + ".dbf", string.Empty);
+        _tableStream = File.Open(Name + ".dbf", FileMode.Open);
+        UpdateHeaderVariables();
+        UpdateHeader(true);
+
         foreach (var value in data.Values)
         {
             List<Tuple<string, string>> record = [];
@@ -222,7 +226,7 @@ public class StreamTable : ITable
                 record.Add(new(data.Columns[i], value[i]));
             Insert(record);
         }
-        
+
         UpdateHeader();
 
         return truncateCount;
@@ -235,9 +239,9 @@ public class StreamTable : ITable
 
         byte[] buffer = new byte[RecordLength];
         int count = RecordsAmount;
-        while (count > 0)
+        while (count-- > 0)
         {
-            _tableStream.Read(buffer, 0, RecordLength);
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
             bool onDelete = buffer[0] == '*';
             if (onDelete) continue;
 
@@ -253,12 +257,11 @@ public class StreamTable : ITable
             if (expression != null && CheckExpression(expression, Properties.Select(p => p.Name).ToList(), variables) ||
                 expression == null)
             {
-                _tableStream.Seek(-14, SeekOrigin.Current);
+                _tableStream.Seek(-RecordLength, SeekOrigin.Current);
                 _tableStream.Write([(byte)'*']);
+                _tableStream.Seek(RecordLength - 1, SeekOrigin.Current);
                 amount++;
             }
-
-            count--;
         }
 
         return amount;
@@ -271,9 +274,9 @@ public class StreamTable : ITable
 
         byte[] buffer = new byte[RecordLength];
         int count = RecordsAmount;
-        while (count > 0)
+        while (count-- > 0)
         {
-            _tableStream.Read(buffer, 0, RecordLength);
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
             bool onDelete = buffer[0] == '*';
             if (!onDelete) continue;
 
@@ -289,12 +292,11 @@ public class StreamTable : ITable
             if (expression != null && CheckExpression(expression, Properties.Select(p => p.Name).ToList(), variables) ||
                 expression == null)
             {
-                _tableStream.Seek(-14, SeekOrigin.Current);
+                _tableStream.Seek(-RecordLength, SeekOrigin.Current);
                 _tableStream.Write([32]);
+                _tableStream.Seek(RecordLength - 1, SeekOrigin.Current);
                 amount++;
             }
-
-            count--;
         }
 
         return amount;
@@ -303,45 +305,49 @@ public class StreamTable : ITable
     public bool AddColumn(ITableProperty newProperty)
     {
         if (newProperty.Index != Properties.Last().Index + 1) return false;
-        
+        if (Properties.FirstOrDefault(p =>
+                p.Name.Equals(newProperty.Name, StringComparison.InvariantCultureIgnoreCase)) != null) return false;
+
         List<Tuple<bool, List<string>>> records = [];
         byte[] buffer = new byte[RecordLength];
         int count = RecordsAmount;
+
+        _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
         
-        while (count > 0)
+        while (count-- > 0)
         {
-            _tableStream.Read(buffer, 0, RecordLength);
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
 
             bool onDelete = buffer[0] == '*';
             int offset = 1;
             List<string> variables = [];
-            
+
             foreach (var property in Properties)
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
                 variables.Add(value);
                 offset += property.Size;
             }
-            
+
             //variables.Add(new string('\0', newProperty.Size));
             records.Add(new(onDelete, variables));
-            count--;
         }
-        
+
         _properties.Add(newProperty);
-        
+
         RecordsAmount = 0;
         UpdateHeaderVariables();
         UpdateHeader(true);
-        
+
         _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
         foreach (var tuple in records)
         {
             List<Tuple<string, string>> record = [];
-            for (int i = 0; i < Properties.Count && i < tuple.Item2.Count ; i++)
+            for (int i = 0; i < Properties.Count && i < tuple.Item2.Count; i++)
                 record.Add(new(Properties[i].Name, tuple.Item2[i]));
             WriteRecord(record, tuple.Item1);
         }
+
         UpdateHeader();
 
         return true;
@@ -349,7 +355,58 @@ public class StreamTable : ITable
 
     public bool RemoveColumn(string columnName)
     {
-        throw new NotImplementedException();
+        if (Properties.FirstOrDefault(p =>
+                p.Name.Equals(columnName, StringComparison.InvariantCultureIgnoreCase)) is not
+            { } propertyOnRemove) return false;
+
+        List<Tuple<bool, List<string>>> records = [];
+        byte[] buffer = new byte[RecordLength];
+        int count = RecordsAmount;
+        _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
+
+        while (count-- > 0)
+        {
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
+
+            bool onDelete = buffer[0] == '*';
+            int offset = 1;
+            List<string> variables = [];
+
+            foreach (var property in Properties)
+            {
+                if (property != propertyOnRemove)
+                {
+                    string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                    variables.Add(value);
+                }
+
+                offset += property.Size;
+            }
+
+            records.Add(new(onDelete, variables));
+        }
+
+        _properties.Remove(propertyOnRemove);
+
+        for (int i = 0; i < Properties.Count; i++)
+            Properties[i].Index = (byte)i;
+
+        RecordsAmount = 0;
+        UpdateHeaderVariables();
+        UpdateHeader(true);
+
+        _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
+        foreach (var tuple in records)
+        {
+            List<Tuple<string, string>> record = [];
+            for (int i = 0; i < Properties.Count && i < tuple.Item2.Count; i++)
+                    record.Add(new(Properties[i].Name, tuple.Item2[i]));
+            WriteRecord(record, tuple.Item1);
+        }
+
+        UpdateHeader();
+
+        return true;
     }
 
     public bool RenameColumn(string currentName, string newName)
@@ -359,14 +416,63 @@ public class StreamTable : ITable
 
         if (newName.Length > 11) return false;
         property.Name = newName;
-        UpdateHeader();
+        UpdateHeader(true);
 
         return true;
     }
 
-    public bool UpdateColumn(string columnName, ITableProperty property)
+    public bool UpdateColumn(string columnName, ITableProperty newProperty)
     {
-        throw new NotImplementedException();
+        if (Properties.FirstOrDefault(p =>
+                p.Name.Equals(columnName, StringComparison.InvariantCultureIgnoreCase)) is not
+            { } propertyOnRemove) return false;
+        newProperty.Index = propertyOnRemove.Index;
+
+        List<Tuple<bool, List<string>>> records = [];
+        byte[] buffer = new byte[RecordLength];
+        int count = RecordsAmount;
+        
+        _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
+        while (count-- > 0)
+        {
+            _readData = _tableStream.Read(buffer, 0, RecordLength);
+
+            bool onDelete = buffer[0] == '*';
+            int offset = 1;
+            List<string> variables = [];
+
+            foreach (var property in Properties)
+            {
+                string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+
+                variables.Add(value);
+                offset += property.Size;
+            }
+
+            records.Add(new(onDelete, variables));
+        }
+
+        _properties.Remove(propertyOnRemove);
+        _properties.Insert(newProperty.Index, newProperty);
+
+        RecordsAmount = 0;
+        UpdateHeaderVariables();
+        UpdateHeader(true);
+
+        _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
+        foreach (var tuple in records)
+        {
+            List<Tuple<string, string>> record = [];
+            for (int i = 0; i < Properties.Count && i < tuple.Item2.Count; i++)
+                if (i != newProperty.Index) // todo: сделать конвертацию типов
+                    record.Add(new(Properties[i].Name, tuple.Item2[i]));
+
+            WriteRecord(record, tuple.Item1);
+        }
+
+        UpdateHeader();
+
+        return true;
     }
 
     #endregion
@@ -375,45 +481,6 @@ public class StreamTable : ITable
     {
         _tableStream.Close();
         _tableStream.Dispose();
-    }
-
-    private void CreateTable()
-    {
-        _tableStream.Seek(0, SeekOrigin.Begin);
-
-        _tableStream.Write(HasMemoFile ? [131] : [3]);
-
-        byte year = (byte)(LastUpdateDate.Year % 100);
-        byte month = (byte)(LastUpdateDate.Month % 100);
-        byte day = (byte)(LastUpdateDate.Day % 100);
-        byte[] dateBuffer = [year, month, day];
-
-        _tableStream.Write(dateBuffer);
-
-        byte[] recordsAmount = BitConverter.GetBytes(RecordsAmount);
-        _tableStream.Write(recordsAmount);
-
-        byte[] lengthInBytes = BitConverter.GetBytes(HeaderLength);
-        _tableStream.Write(lengthInBytes);
-
-        byte[] recordLength = BitConverter.GetBytes(RecordLength);
-        _tableStream.Write(recordLength);
-
-        for (int i = 0; i < 20; i++)
-            _tableStream.Write([0]);
-
-        foreach (var property in Properties)
-        {
-            string name = property.Name;
-            while (name.Length < 11) name += '\0';
-
-            _tableStream.Write(Encoding.GetEncoding(1251).GetBytes(name));
-            _tableStream.Write([(byte)property.Type]);
-            _tableStream.Write([(byte)property.Width]);
-            _tableStream.Write([(byte)property.Precision]);
-            _tableStream.Write([(byte)property.Size]);
-            _tableStream.Write([(byte)property.Index]);
-        }
     }
 
     private void UpdateHeader(bool withProperties = false)
@@ -449,15 +516,17 @@ public class StreamTable : ITable
 
                 _tableStream.Write(Encoding.GetEncoding(1251).GetBytes(name));
                 _tableStream.Write([(byte)property.Type]);
-                _tableStream.Write([(byte)property.Size]);
-                _tableStream.Write([(byte)property.Index]);
+                _tableStream.Write([property.Width]);
+                _tableStream.Write([property.Precision]);
+                _tableStream.Write([property.Size]);
+                _tableStream.Write([property.Index]);
             }
     }
 
     private void UpdateHeaderVariables()
     {
         HeaderLength = (short)(32 + 16 * Properties.Count);
-        RecordLength = (short)(Properties.Sum(p => (short)p.Size) + 1);
+        RecordLength = (short)(Properties.Sum(p => p.Size) + 1);
     }
 
     private void WriteRecord(IList<Tuple<string, string>> data, bool onDelete = false)
@@ -494,7 +563,25 @@ public class StreamTable : ITable
             else
             {
                 // todo: значения по умолчанию для каждого типа
-                buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(new string('\0', property.Size)));
+                string emptyValue = "";
+
+                switch (property.Type.ToString().ToLowerInvariant())
+                {
+                    case "n":
+                        emptyValue = ConvertToN(emptyValue, property);
+                        break;
+                    case "c":
+                        emptyValue = ConvertToC(emptyValue, property);
+                        break;
+                    case "l":
+                        emptyValue = "?";
+                        break;
+                    case "d":
+                        emptyValue = "20040330";
+                        break;
+                }
+
+                buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(emptyValue));
             }
         }
 
@@ -516,25 +603,25 @@ public class StreamTable : ITable
             if (expression.Entities[i] is Filter f)
             {
                 var index = variables.IndexOf(f.Field);
-                bool result = false;
 
                 var property = Properties.FirstOrDefault(p => p.Name == f.Field);
                 //Console.Write(record[index]);
 
                 if (property == null) return false;
                 string expectedValue = f.Value;
+                string actualValue = record[index];
                 switch (property.Type)
                 {
                     case 'C':
-                        expectedValue.Trim('\0');
-                        expectedValue = '"' + expectedValue + '"';
+                        actualValue = actualValue.Trim('\0');
+                        actualValue = '"' + actualValue + '"';
                         break;
                     case 'N':
                         expectedValue = ConvertToN(expectedValue, property);
                         break;
                 }
 
-                result = _operationFactory.GetOperation(f.Operation).GetResult(record[index], expectedValue);
+                var result = _operationFactory.GetOperation(f.Operation).GetResult(actualValue, expectedValue);
                 bool r = result;
 
                 // Console.Write(" - " + f.Field + " " + result);
@@ -647,7 +734,8 @@ public class StreamTable : ITable
 
     private string ConvertToC(string value, ITableProperty property)
     {
-        value = value[1..^1];
+        if(value.Length > 2)
+            value = value[1..^1];
         if (value.Length < property.Size)
             value += new string('\0', property.Size - value.Length);
         return value;
@@ -658,7 +746,8 @@ public class StreamTable : ITable
         if (value.Length < property.Size)
         {
             char sign = '+';
-            if (value[0] == '-' || value[0] == '+')
+
+            if (value.Length > 0 && (value[0] == '-' || value[0] == '+'))
             {
                 sign = value[0];
                 value = value[1..];

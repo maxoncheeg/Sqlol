@@ -1,10 +1,6 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text;
 using Sqlol.Configurations;
 using Sqlol.Configurations.Factories;
-using Sqlol.Configurations.TypesConfigurations;
 using Sqlol.Expressions;
 using Sqlol.Expressions.Builders;
 using Sqlol.Loggers;
@@ -142,19 +138,6 @@ public class Expressions
     }
 }
 
-public class B
-{
-    public int X { get; set; }
-}
-
-public class A
-{
-    public void B(B b)
-    {
-        b = new B() { X = 10 };
-    }
-}
-
 internal class Program
 {
     public static void Print(IExpression e, int c = 0)
@@ -176,7 +159,7 @@ internal class Program
     public static void Main(string[] args)
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        
+
         IKeyWordsConfiguration configuration = new KeyWordsConfiguration();
         IValidationFactory validation = new ValidationFactory(configuration);
         IQueryChangesSeparator separator = new QueryChangesSeparator(configuration);
@@ -198,33 +181,41 @@ internal class Program
             { "open", new OpenQuery(validation, logger, operationFactory) },
             { "close", new CloseQuery() },
             { "insert", new InsertQuery(configuration, separator, logger) },
-            { "select", new SelectQuery(builder) }
+            { "select", new SelectQuery(builder) },
+            { "delete", new DeleteQuery(builder, logger) },
+            { "restore", new RestoreQuery(logger) },
+            { "truncate", new TruncateQuery(logger) },
+            { "columnRename", new ColumnRenameQuery(logger) },
+            { "columnAdd", new AddColumnQuery(converter, logger) },
+            { "columnRemove", new RemoveColumnQuery(logger) },
+            { "columnUpdate", new UpdateColumnQuery(converter, logger) },
+            { "update", new UpdateQuery(configuration, separator, builder, logger) }
         });
 
-        IQueryManager manager = new QueryManager(validation, queryFactory);
+        IQueryManager manager = new QueryManager(validation, queryFactory, logger);
 
         string? query = "";
         while (query != "exit")
         {
-            Console.Write("Sqlol> ");
+            Console.Write("SQL> ");
             query = Console.ReadLine();
             if (query == null) continue;
-        
+
             query = query.Trim().Trim(';').Trim();
-        
+
+            if (query.ToLowerInvariant() == "exit") break;
+
             var result = manager.Execute(query);
-            
-            if(result.Data != null)
+
+            if (result.Data != null)
                 Console.WriteLine(result.Data.GetStringTable());
-        
+
             if (result.Result > 0)
                 Console.WriteLine("Команда выполнена успешно.");
             else
                 Console.WriteLine("Команда не выполнена.");
         }
-        
-        
-        
+
 
         manager.Dispose();
     }

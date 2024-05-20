@@ -8,6 +8,12 @@ public class OpenQuery(IValidationFactory validation, ILogger logger, IOperation
 {
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
+        if (table != null)
+        {
+            logger.SendMessage("Ошибка", $"Таблица с именем уже открыта");
+            return new QueryResult(0, null);
+        }
+        
         string tableName = validation.GetTableName(textQuery[..textQuery.IndexOf(' ')],textQuery);
         
         if (!File.Exists(tableName + ".dbf"))
