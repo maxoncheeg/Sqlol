@@ -208,7 +208,16 @@ internal class Program
             var result = manager.Execute(query);
 
             if (result.Data != null)
-                Console.WriteLine(result.Data.GetStringTable());
+            { 
+                Console.WriteLine(result.Data.GetHeader());
+                using IEnumerator<string> enumerator = result.Data.GetRecords();
+
+                while (enumerator.MoveNext())
+                    Console.WriteLine(enumerator.Current);
+
+                //foreach (var row in result.Data.Values)
+                //    Console.WriteLine(result.Data.GetRecords());
+            }
 
             if (result.Result > 0)
             {
