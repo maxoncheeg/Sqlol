@@ -9,13 +9,13 @@ public class QueryChangesSeparator(IKeyWordsConfiguration configuration) : IQuer
     public IList<Tuple<string, string>> GetChangesFromQuery(string command, string query)
     {
         List<Tuple<string, string>> changes = [];
-        switch (command)
+        switch (command.ToLowerInvariant())
         {
             case "update":
             {
-                query = Regex.Match(query, @"set\s+.+\s+where").Value;
-                var variables = Regex.Matches(query, @"\w{1,11}\s*=").Select(m => m.Value.TrimEnd('=').Trim()).ToList();
-                var values = Regex.Matches(query, $@"=\s*{configuration.ValuePattern}").Select(m => m.Value.TrimStart('=').Trim()).ToList();
+                query = Regex.Match(query, @"set\s+.+\s+(where)?", RegexOptions.IgnoreCase).Value;
+                var variables = Regex.Matches(query, @"\w{1,11}\s*=", RegexOptions.IgnoreCase).Select(m => m.Value.TrimEnd('=').Trim()).ToList();
+                var values = Regex.Matches(query, $@"=\s*{configuration.ValuePattern}", RegexOptions.IgnoreCase).Select(m => m.Value.TrimStart('=').Trim()).ToList();
                 
                 if (variables.Count != values.Count)
                     throw new Exception("Количество столбцов не соотвествует количеству значений");
@@ -30,11 +30,9 @@ public class QueryChangesSeparator(IKeyWordsConfiguration configuration) : IQuer
                 brackets = brackets.Select(s => Regex.Match(s, @"\(.+\)").Value).ToList();
                 var firstBracket = brackets.First();
                 var secondBracketText = brackets.Last().Trim('(').Trim(')');
-
-                // List<string> secondBracket = GetStringValues(secondBracketText);
+                
                 List<string> values = [];
                 
-
                 var m = Regex.Matches(secondBracketText, $@"{configuration.ValuePattern}\,\s*");
                 foreach (Match t in m)
                     values.Add(t.Value.TrimEnd(' ').TrimEnd(','));
@@ -53,37 +51,5 @@ public class QueryChangesSeparator(IKeyWordsConfiguration configuration) : IQuer
         }
 
         return changes;
-    }
-
-    private List<string> GetStringValues(string bracketText)
-    {
-        bool isC = false;
-        List<string> secondBracket = [];
-        List<int> commaIndexes = new List<int>();
-
-        int firstIndex = 0, cEndIndex = -1;
-        for (int i = 0; i < bracketText.Length; i++)
-        {
-            switch (bracketText[i])
-            {
-                case '"' when cEndIndex < i:
-                    isC = true;
-                    int comma = bracketText.IndexOf(',', i);
-                    cEndIndex = bracketText.LastIndexOf('"', comma >= 0 ? comma : bracketText.Length - 1);
-                    break;
-                case '"' when cEndIndex == i:
-                    isC = false;
-                    break;
-                case ',' when !isC:
-                    secondBracket.Add(bracketText.Substring(firstIndex, i - firstIndex));
-                    firstIndex = i + 1;
-                    i++;
-                    break;
-            }
-        }
-
-        if (secondBracket.Count == 0) secondBracket.Add(bracketText);
-
-        return secondBracket;
     }
 }

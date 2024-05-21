@@ -11,6 +11,8 @@ public class QueryManager(IValidationFactory validationFactory, IQueryFactory qu
     
     public IQueryResult Execute(string textQuery)
     {
+        if (!textQuery.Contains(' ')) return new QueryResult(0, null);
+        
         string command = textQuery[..textQuery.IndexOf(' ')];
         string? queryKey = validationFactory.Validate(command, textQuery);
         if (queryKey == null)

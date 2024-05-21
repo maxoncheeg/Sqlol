@@ -107,11 +107,11 @@ public class ValidationFactory : IValidationFactory
                 break;
             case "select":
             case "delete":
-                result = Regex.Match(query, @"from\s+\w+").Value;
-                result = result.Replace("from", "").Trim();
+                result = Regex.Match(query, @"from\s+\w+", RegexOptions.IgnoreCase).Value;
+                result = result.Replace("from", "", StringComparison.InvariantCultureIgnoreCase).Trim();
                 break;
             case "alter":
-                result = Regex.Match(query, @"^alter\s+table\s+\w+").Value;
+                result = Regex.Match(query, @"^alter\s+table\s+\w+", RegexOptions.IgnoreCase).Value;
                 result = Regex.Match(result, @"\w+$").Value;
                 break;
         }

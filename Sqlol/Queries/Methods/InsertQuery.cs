@@ -20,7 +20,11 @@ public class InsertQuery : IQuery
 
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
-        if (table == null) return new QueryResult(0, null);
+        if (table == null)
+        {
+            _logger.SendMessage("Ошибка", "Таблица не открыта");
+            return new QueryResult(0, table);
+        }
 
         string keyWord = textQuery[..textQuery.IndexOf(' ')];
         IList<Tuple<string, string>> changes;

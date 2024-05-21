@@ -10,7 +10,7 @@ public class OpenQuery(IValidationFactory validation, ILogger logger, IOperation
     {
         if (table != null)
         {
-            logger.SendMessage("Ошибка", $"Таблица с именем уже открыта");
+            logger.SendMessage("Ошибка", $"Таблица уже открыта");
             return new QueryResult(0, null);
         }
         

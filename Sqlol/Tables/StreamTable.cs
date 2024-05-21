@@ -140,7 +140,7 @@ public class StreamTable : ITable
                 List<int> indexes = [];
                 for (int i = 0; i < columns.Count; i++)
                 {
-                    if (columns[i] == property.Name)
+                    if (columns[i].Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
                         indexes.Add(i);
                 }
 
@@ -440,6 +440,7 @@ public class StreamTable : ITable
             bool onDelete = buffer[0] == '*';
             int offset = 1;
             List<string> variables = [];
+            
 
             foreach (var property in Properties)
             {
@@ -534,7 +535,7 @@ public class StreamTable : ITable
         List<byte> buffer = new();
         // Пометка удаления.
         //_tableStream.Write([20]);
-        buffer.Add(onDelete ? (byte)'*' : (byte)32);
+        buffer.Add(onDelete ? (byte)'*' : (byte)' ');
 
         foreach (var property in Properties)
         {

@@ -5,7 +5,7 @@ namespace Sqlol.Expressions.Builders;
 
 public partial class ExpressionBuilder : IExpressionBuilder {
     private const string DoubleQuote = "\"";
-    private const string ValuePattern = $@"([\w\d\.\+\-\?]+|{DoubleQuote}.+{DoubleQuote})";
+    private const string ValuePattern = $@"([\w\d\.\+\-\?]+|{DoubleQuote}.*{DoubleQuote})";
     private const string FieldPattern = @"[\w\d_]+";
     private readonly string _comparisonGroup;
     private readonly string _logicalGroup;
@@ -25,7 +25,7 @@ public partial class ExpressionBuilder : IExpressionBuilder {
     [GeneratedRegex(@"^\([\w\d_]+")]
     private static partial Regex FieldRegex();
     
-    [GeneratedRegex(@$"([\w\d\.\+\-]+|{DoubleQuote}.+{DoubleQuote})\)")]
+    [GeneratedRegex(@$"([\w\d\.\+\-\?]+|{DoubleQuote}.*{DoubleQuote})\)")]
     private static partial Regex ValueRegex();
     
     [GeneratedRegex(@"\)$")]

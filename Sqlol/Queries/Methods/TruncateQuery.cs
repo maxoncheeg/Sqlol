@@ -7,7 +7,12 @@ public class TruncateQuery(ILogger logger) : IQuery
 {
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
-        if (table == null) logger.SendMessage("Ошибка", $"Таблица не открыта");
+        if (table == null)
+        {
+            logger.SendMessage("Ошибка", "Таблица не открыта");
+            return new QueryResult(0, table);
+        }
+        
         int result = table.Truncate();
         logger.SendMessage("Truncate-запрос", $"Затронуто {result} строк");
         return new QueryResult(result, table);

@@ -177,9 +177,9 @@ internal class Program
         {
             { "create", new CreateQuery(converter, logger, validation, operationFactory) },
             { "open", new OpenQuery(validation, logger, operationFactory) },
-            { "close", new CloseQuery() },
+            { "close", new CloseQuery(logger) },
             { "insert", new InsertQuery(configuration, separator, logger) },
-            { "select", new SelectQuery(builder) },
+            { "select", new SelectQuery(builder, logger) },
             { "delete", new DeleteQuery(builder, logger) },
             { "restore", new RestoreQuery(logger) },
             { "truncate", new TruncateQuery(logger) },
@@ -193,45 +193,82 @@ internal class Program
         IQueryManager manager = new QueryManager(validation, queryFactory, logger);
 
         string? query = "";
-        while (query != "exit")
+        while (query.ToLowerInvariant() != "exit")
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.Write("SQL> ");
             Console.ForegroundColor = ConsoleColor.White;
-            query = Console.ReadLine();
-            if (query == null) continue;
 
-            query = query.Trim().Trim(';').Trim();
+            var queries = ReadQueries();
 
-            if (query.ToLowerInvariant() == "exit") break;
-
-            var result = manager.Execute(query);
-
-            if (result.Data != null)
-            { 
-                Console.WriteLine(result.Data.GetHeader());
-                using IEnumerator<string> enumerator = result.Data.GetRecords();
-
-                while (enumerator.MoveNext())
-                    Console.WriteLine(enumerator.Current);
-
-                //foreach (var row in result.Data.Values)
-                //    Console.WriteLine(result.Data.GetRecords());
-            }
-
-            if (result.Result > 0)
+            foreach (var q in queries)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("Команда выполнена успешно.");
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Команда не выполнена.");
+                if (q.ToLowerInvariant() == "exit") break;
+                
+                if(queries.Count > 1)
+                {
+                    Console.ForegroundColor = ConsoleColor.Magenta;
+                    Console.WriteLine("Запрос: " + q);
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+
+                var result = manager.Execute(q);
+                
+
+                if (result.Data != null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(result.Data.GetHeader());
+                    Console.ForegroundColor = ConsoleColor.White;
+                    using IEnumerator<string> enumerator = result.Data.GetRecords();
+
+                    while (enumerator.MoveNext())
+                        Console.WriteLine(enumerator.Current);
+                }
+
+                if (result.Result > 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Команда выполнена успешно.");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Команда не выполнена.");
+                }
+                Console.ForegroundColor = ConsoleColor.White;
+                query = q;
             }
         }
 
 
         manager.Dispose();
+    }
+
+    private static List<string> ReadQueries()
+    {
+        string? line = "";
+        List<string> queries = [];
+        string input = "";
+        int lineIndex = -1;
+        do
+        {
+            if (line.Contains(';')) lineIndex = 0;
+            else lineIndex++;
+
+            if(line != "") Console.Write(new string(' ', 5));
+            Console.Write(new string(' ', lineIndex));
+            input += line + ' ';
+            line = Console.ReadLine();
+        } while (!string.IsNullOrWhiteSpace(line));
+
+        var lines = input.Split(';');
+        foreach (var l in lines)
+        {
+            if (string.IsNullOrWhiteSpace(l)) continue;
+            queries.Add(l.Trim());
+        }
+
+        return queries;
     }
 }
