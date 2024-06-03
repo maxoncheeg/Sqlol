@@ -56,7 +56,23 @@ public class TablePropertyConverter : ITablePropertyConverter
             bool wRes = byte.TryParse(width, out var w);
             bool pRes = byte.TryParse(precision, out var p);
             byte size = (byte)((wRes ? w : 0) + (pRes ? p : 0) + _configuration.Types[type].SizeOffset);
-           // Console.Write(type + " " + w + " " + p + " " + size);
+
+            if (type == 'C' && !(wRes && !pRes))
+            {
+                throw new Exception("У типа C нужно указывать длину. Например, name C(10)");
+            }
+            if (type == 'N' && !wRes && !pRes)
+            {
+                throw new Exception("У типа N нужно указывать хотя-бы длину. Например, name N(10)");
+            }
+            if (type == 'N' && (wRes && pRes && w + p == 0 || wRes && !pRes && w == 0))
+            {
+                throw new Exception("Типа N не может содержать 0 символов");
+            }
+            if (type != 'N' && type != 'C' && (wRes || pRes))
+            {
+                throw new Exception($"Тип {type} не поддерживает точность и длину");
+            }
             
             ITableProperty property = new TableProperty(name, type, (wRes ? w : (byte)0), (pRes ? p : (byte)0), index++, size);
             result.Add(property);

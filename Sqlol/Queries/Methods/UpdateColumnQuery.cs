@@ -15,6 +15,11 @@ public class UpdateColumnQuery(ITablePropertyConverter converter, ILogger logger
             return new QueryResult(0, null);
         }
 
+        if (!logger.ApproveAction("Обновление таблицы", "Данные могут быть утеряны при конвертации типов"))
+        {
+            return new QueryResult(0, null);
+        }
+
         var text = Regex.Match(textQuery, @"update\s+\w{1,11}\s+.+$").Value;
         text = text[text.IndexOf(' ')..].Trim();
         var columnName = text[..text.IndexOf(' ')].Trim();

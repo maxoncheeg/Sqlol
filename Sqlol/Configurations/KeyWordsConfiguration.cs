@@ -13,7 +13,7 @@ public class KeyWordsConfiguration : IKeyWordsConfiguration
         { 'D', new DTypeConfiguration(8, 0, 8) },
         { 'N', new NTypeConfiguration(127, 126, 2) },
         { 'L', new LTypeConfiguration(1, 0, 1) },
-        { 'M', new CTypeConfiguration(255, 0, 0) },
+        { 'M', new MTypeConfiguration(0, 0, 5) },
     };
 
     public IList<string> LogicalOperations { get; set; } = ["or", "and", "xor"];

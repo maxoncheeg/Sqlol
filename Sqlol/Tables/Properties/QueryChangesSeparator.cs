@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+﻿
 using System.Text.RegularExpressions;
 using Sqlol.Configurations;
 
@@ -13,7 +13,7 @@ public class QueryChangesSeparator(IKeyWordsConfiguration configuration) : IQuer
         {
             case "update":
             {
-                query = Regex.Match(query, @"set\s+.+\s+(where)?", RegexOptions.IgnoreCase).Value;
+                query = Regex.Match(query, @"set\s+.+(|\s+where)", RegexOptions.IgnoreCase).Value;
                 var variables = Regex.Matches(query, @"\w{1,11}\s*=", RegexOptions.IgnoreCase).Select(m => m.Value.TrimEnd('=').Trim()).ToList();
                 var values = Regex.Matches(query, $@"=\s*{configuration.ValuePattern}", RegexOptions.IgnoreCase).Select(m => m.Value.TrimStart('=').Trim()).ToList();
                 

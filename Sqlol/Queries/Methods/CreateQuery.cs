@@ -10,7 +10,7 @@ public class CreateQuery(ITablePropertyConverter converter, ILogger logger, IVal
 {
     public IQueryResult Execute(string textQuery, ITable? table = null)
     {
-        IList<ITableProperty> properties = converter.Convert(Regex.Match(textQuery, @"\(.+\)").Value);
+        
         string tableName = validation.GetTableName(textQuery[..textQuery.IndexOf(' ')],textQuery);
         
         if (File.Exists(tableName + ".dbf"))
@@ -18,16 +18,17 @@ public class CreateQuery(ITablePropertyConverter converter, ILogger logger, IVal
             logger.SendMessage("Ошибка", $"Таблица с именем {tableName} уже существует");
             return new QueryResult(0, null);
         }
-
+        
         try
         {
+            IList<ITableProperty> properties = converter.Convert(Regex.Match(textQuery, @"\(.+\)").Value);
             Stream stream = File.Create(tableName + ".dbf");
             ITable newTable = new StreamTable( tableName, stream, properties, operationFactory);
             return new QueryResult(1, newTable);
         }
         catch (Exception e)
         {
-            Console.WriteLine(e.Message);
+            logger.SendMessage("Ошибка", e.Message);
             return new QueryResult(0, null);
         }
     }

@@ -31,15 +31,18 @@ public class StreamTable : ITable
         RecordLength = (short)(properties.Sum(p => p.Size) + 1);
         _properties = properties.ToList();
 
-        // ??
         RecordsAmount = 0;
-        HasMemoFile = File.Exists($"{name}.dbt");
+
+        if (Properties.FirstOrDefault(p =>
+                p.Type.ToString().Equals("M", StringComparison.InvariantCultureIgnoreCase)) != null)
+        {
+            UpdateMemo();
+            HasMemoFile = true;
+        }
 
         _tableStream = tableStream;
 
         UpdateHeader(true);
-
-        //tableStream.Dispose();
     }
 
     public StreamTable(string name, Stream tableStream, IOperationFactory factory)
@@ -52,7 +55,7 @@ public class StreamTable : ITable
         byte[] buffer = new byte[32];
 
         _readData = _readData = _tableStream.Read(buffer, 0, 1);
-        HasMemoFile = buffer[0] == 131;
+        HasMemoFile = File.Exists($"{name}.dbt");
 
         _readData = _tableStream.Read(buffer, 0, 3);
         LastUpdateDate = new(2000 + buffer[0], buffer[1], buffer[2]);
@@ -80,7 +83,6 @@ public class StreamTable : ITable
 
             _readData = _tableStream.Read(buffer, 0, 5);
 
-
             property = new TableProperty(propertyName, (char)buffer[0], buffer[1], buffer[2], buffer[4], buffer[3]);
             _properties.Add(property);
             propertiesLength -= 16;
@@ -98,9 +100,9 @@ public class StreamTable : ITable
             WriteRecord(data);
             UpdateHeader();
         }
-        catch
+        catch (Exception e)
         {
-            throw;
+            return false;
         }
 
         return true;
@@ -133,6 +135,13 @@ public class StreamTable : ITable
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
                 if (property.Type == 'C')
                     value = '"' + value.Trim('\0') + '"';
+                if (property.Type == 'M')
+                {
+                    short index = short.Parse(value);
+                    value = ReadMemo(index);
+                    value = '"' + value.Trim('\0') + '"';
+                }
+
                 variables.Add(value);
 
                 offset += property.Size;
@@ -215,6 +224,7 @@ public class StreamTable : ITable
         _tableStream.Close();
 
         File.WriteAllText(Name + ".dbf", string.Empty);
+        UpdateMemo();
         _tableStream = File.Open(Name + ".dbf", FileMode.Open);
         UpdateHeaderVariables();
         UpdateHeader(true);
@@ -250,6 +260,15 @@ public class StreamTable : ITable
             foreach (var property in Properties)
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                if (property.Type == 'C')
+                    value = '"' + value.Trim('\0') + '"';
+                if (property.Type == 'M')
+                {
+                    short index = short.Parse(value);
+                    value = ReadMemo(index);
+                    value = '"' + value.Trim('\0') + '"';
+                }
+
                 variables.Add(value);
                 offset += property.Size;
             }
@@ -285,6 +304,15 @@ public class StreamTable : ITable
             foreach (var property in Properties)
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                if (property.Type == 'C')
+                    value = '"' + value.Trim('\0') + '"';
+                if (property.Type == 'M')
+                {
+                    short index = short.Parse(value);
+                    value = ReadMemo(index);
+                    value = '"' + value.Trim('\0') + '"';
+                }
+
                 variables.Add(value);
                 offset += property.Size;
             }
@@ -313,7 +341,7 @@ public class StreamTable : ITable
         int count = RecordsAmount;
 
         _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
-        
+
         while (count-- > 0)
         {
             _readData = _tableStream.Read(buffer, 0, RecordLength);
@@ -325,6 +353,15 @@ public class StreamTable : ITable
             foreach (var property in Properties)
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                if (property.Type == 'C')
+                    value = '"' + value.Trim('\0') + '"';
+                if (property.Type == 'M')
+                {
+                    short index = short.Parse(value);
+                    value = ReadMemo(index);
+                    value = '"' + value.Trim('\0') + '"';
+                }
+
                 variables.Add(value);
                 offset += property.Size;
             }
@@ -336,6 +373,12 @@ public class StreamTable : ITable
         _properties.Add(newProperty);
 
         RecordsAmount = 0;
+        if (Properties.FirstOrDefault(p =>
+                p.Type.ToString().Equals("M", StringComparison.InvariantCultureIgnoreCase)) != null)
+        {
+            UpdateMemo();
+            HasMemoFile = true;
+        }
         UpdateHeaderVariables();
         UpdateHeader(true);
 
@@ -377,6 +420,15 @@ public class StreamTable : ITable
                 if (property != propertyOnRemove)
                 {
                     string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                    if (property.Type == 'C')
+                        value = '"' + value.Trim('\0') + '"';
+                    if (property.Type == 'M')
+                    {
+                        short index = short.Parse(value);
+                        value = ReadMemo(index);
+                        value = '"' + value.Trim('\0') + '"';
+                    }
+
                     variables.Add(value);
                 }
 
@@ -392,6 +444,7 @@ public class StreamTable : ITable
             Properties[i].Index = (byte)i;
 
         RecordsAmount = 0;
+        UpdateMemo();
         UpdateHeaderVariables();
         UpdateHeader(true);
 
@@ -400,7 +453,7 @@ public class StreamTable : ITable
         {
             List<Tuple<string, string>> record = [];
             for (int i = 0; i < Properties.Count && i < tuple.Item2.Count; i++)
-                    record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                record.Add(new(Properties[i].Name, tuple.Item2[i]));
             WriteRecord(record, tuple.Item1);
         }
 
@@ -431,7 +484,7 @@ public class StreamTable : ITable
         List<Tuple<bool, List<string>>> records = [];
         byte[] buffer = new byte[RecordLength];
         int count = RecordsAmount;
-        
+
         _tableStream.Seek(HeaderLength, SeekOrigin.Begin);
         while (count-- > 0)
         {
@@ -440,11 +493,19 @@ public class StreamTable : ITable
             bool onDelete = buffer[0] == '*';
             int offset = 1;
             List<string> variables = [];
-            
+
 
             foreach (var property in Properties)
             {
                 string value = Encoding.GetEncoding(1251).GetString(buffer, offset, property.Size);
+                if (property.Type == 'C')
+                    value = '"' + value.Trim('\0') + '"';
+                if (property.Type == 'M')
+                {
+                    short index = short.Parse(value);
+                    value = ReadMemo(index);
+                    value = '"' + value.Trim('\0') + '"';
+                }
 
                 variables.Add(value);
                 offset += property.Size;
@@ -457,6 +518,12 @@ public class StreamTable : ITable
         _properties.Insert(newProperty.Index, newProperty);
 
         RecordsAmount = 0;
+        if (Properties.FirstOrDefault(p =>
+                p.Type.ToString().Equals("M", StringComparison.InvariantCultureIgnoreCase)) != null)
+        {
+            UpdateMemo();
+            HasMemoFile = true;
+        }
         UpdateHeaderVariables();
         UpdateHeader(true);
 
@@ -465,8 +532,42 @@ public class StreamTable : ITable
         {
             List<Tuple<string, string>> record = [];
             for (int i = 0; i < Properties.Count && i < tuple.Item2.Count; i++)
-                if (i != newProperty.Index) // todo: сделать конвертацию типов
+                if (i != newProperty.Index)
                     record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                else
+                {
+                    char prev = propertyOnRemove.Type, now = Properties[i].Type;
+                    if (prev == now && prev != 'C' && prev != 'N')
+                        record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                    if (now == 'C')
+                    {
+                        if (Properties[i].Width >= propertyOnRemove.Width)
+                            record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                        else
+                        {
+                            string newValue = tuple.Item2[i];
+                            if (prev == 'M' || prev == 'C')
+                                newValue = newValue[1..^1];
+                            newValue = newValue[..Properties[i].Width];
+                            newValue = '"' + newValue + '"';
+
+                            record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                        }
+                    }
+
+                    if (now == 'N' && (prev == 'N' || prev == 'D'))
+                    {
+                        if (prev == 'N' && propertyOnRemove.Width <= Properties[i].Width &&
+                            propertyOnRemove.Precision <= Properties[i].Precision)
+                            record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                        else if (prev == 'D' && Properties[i].Width >= propertyOnRemove.Width)
+                            record.Add(new(Properties[i].Name, tuple.Item2[i]));
+                        else if (prev == 'N')
+                        {
+                            record.Add(new(Properties[i].Name, ConvertToN(tuple.Item2[i], Properties[i])));
+                        }
+                    }
+                }
 
             WriteRecord(record, tuple.Item1);
         }
@@ -533,8 +634,7 @@ public class StreamTable : ITable
     private void WriteRecord(IList<Tuple<string, string>> data, bool onDelete = false)
     {
         List<byte> buffer = new();
-        // Пометка удаления.
-        //_tableStream.Write([20]);
+
         buffer.Add(onDelete ? (byte)'*' : (byte)' ');
 
         foreach (var property in Properties)
@@ -545,20 +645,27 @@ public class StreamTable : ITable
             if (tuple != null)
             {
                 string value = tuple.Item2;
-                if (value.Length > property.Size) throw new ArgumentException("Поле больше позволяемой длины");
+                if (property.Type != 'M' && value.Length > property.Size)
+                    throw new ArgumentException("Поле больше позволяемой длины");
 
                 if (value.Length != property.Size)
-                    switch (property.Type)
+                    switch (property.Type.ToString().ToUpperInvariant())
                     {
-                        case 'C':
+                        case "C":
                             value = ConvertToC(value, property);
                             break;
-                        case 'N':
+                        case "N":
                             value = ConvertToN(value, property);
+                            break;
+                        case "M":
+                        {
+                            value = WriteMemo(value).ToString();
+                            if (value.Length < 5)
+                                value = new string('0', 5 - value.Length) + value;
+                        }
                             break;
                     }
 
-                //_tableStream.Write(Encoding.GetEncoding(1251).GetBytes(value));
                 buffer.AddRange(Encoding.GetEncoding(1251).GetBytes(value));
             }
             else
@@ -579,6 +686,13 @@ public class StreamTable : ITable
                         break;
                     case "d":
                         emptyValue = "20040330";
+                        break;
+                    case "m":
+                    {
+                        emptyValue = WriteMemo(emptyValue).ToString();
+                        if (emptyValue.Length < 5)
+                            emptyValue = new string('0', 5 - emptyValue.Length);
+                    }
                         break;
                 }
 
@@ -735,7 +849,7 @@ public class StreamTable : ITable
 
     private string ConvertToC(string value, ITableProperty property)
     {
-        if(value.Length >= 2)
+        if (value.Length >= 2)
             value = value[1..^1];
         if (value.Length < property.Size)
             value += new string('\0', property.Size - value.Length);
@@ -744,35 +858,72 @@ public class StreamTable : ITable
 
     private string ConvertToN(string value, ITableProperty property)
     {
-        if (value.Length < property.Size)
+        char sign = '+';
+
+        if (value.Length > 0 && (value[0] == '-' || value[0] == '+'))
         {
-            char sign = '+';
-
-            if (value.Length > 0 && (value[0] == '-' || value[0] == '+'))
-            {
-                sign = value[0];
-                value = value[1..];
-            }
-
-            string left, right = "";
-            if (value.Contains('.'))
-            {
-                left = value[..(value.IndexOf('.'))];
-                right = value[(value.IndexOf('.') + 1)..];
-            }
-            else left = value;
-
-            if (left.Length < property.Width)
-                left = new string('0', property.Width - left.Length) + left;
-            if (right.Length < property.Precision)
-                right = right + new string('0', property.Precision - right.Length);
-
-            if (left.All(c => c == '0') && right.All(c => c == '0'))
-                sign = '+';
-
-            value = sign + left + '.' + right;
+            sign = value[0];
+            value = value[1..];
         }
 
+        string left, right = "";
+        if (value.Contains('.'))
+        {
+            left = value[..(value.IndexOf('.'))];
+            right = value[(value.IndexOf('.') + 1)..];
+        }
+        else left = value;
+
+        if (left.Length < property.Width)
+            left = new string('0', property.Width - left.Length) + left;
+        if (right.Length < property.Precision)
+            right = right + new string('0', property.Precision - right.Length);
+        if (left.Length > property.Width)
+            left = left[^(property.Width)..];
+        if (right.Length > property.Precision)
+            right = right[..(property.Precision)];
+
+        if (left.All(c => c == '0') && right.All(c => c == '0'))
+            sign = '+';
+
+        value = sign + left + '.' + right;
+
+
         return value;
+    }
+
+    private short WriteMemo(string value)
+    {
+        using Stream memo = File.Open($"{Name}.dbt", FileMode.Open);
+        memo.Seek(0, SeekOrigin.Begin);
+        byte[] shortNum = new byte[2];
+        _readData = memo.Read(shortNum, 0, sizeof(short));
+        short memoAmount = BitConverter.ToInt16(shortNum, 0);
+        memo.Seek(0, SeekOrigin.Begin);
+        memo.Write(BitConverter.GetBytes((short)(memoAmount + 1)));
+
+        if (value.Length >= 2) value = value[1..^1];
+        if (value.Length < 512) value = value + new string('\0', 512 - value.Length);
+
+        memo.Seek(memoAmount * 512, SeekOrigin.Current);
+        memo.Write(Encoding.GetEncoding(1251).GetBytes(value));
+
+        return memoAmount;
+    }
+
+    private string ReadMemo(short index)
+    {
+        using Stream memo = File.Open($"{Name}.dbt", FileMode.Open);
+        memo.Seek(2 + index * 512, SeekOrigin.Begin);
+        byte[] buffer = new byte[512];
+        _readData = memo.Read(buffer, 0, 512);
+        return Encoding.GetEncoding(1251).GetString(buffer);
+    }
+
+    private void UpdateMemo()
+    {
+        File.WriteAllText(Name + ".dbt", string.Empty);
+        using Stream memoFile = File.Create($"{Name}.dbt");
+        memoFile.Write([0, 0]);
     }
 }

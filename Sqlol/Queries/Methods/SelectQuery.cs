@@ -18,7 +18,7 @@ public class SelectQuery(IExpressionBuilder builder, ILogger logger) : IQuery
 
         string where = "";
         IExpression? expression = null;
-        if(textQuery.Contains("where", StringComparison.InvariantCultureIgnoreCase))
+        if (textQuery.Contains("where", StringComparison.InvariantCultureIgnoreCase))
         {
             where = textQuery[textQuery.IndexOf("where", StringComparison.InvariantCultureIgnoreCase)..];
             where = where[where.IndexOf(' ')..];
@@ -33,7 +33,7 @@ public class SelectQuery(IExpressionBuilder builder, ILogger logger) : IQuery
                 return new QueryResult(0, table);
             }
         }
-        
+
         textQuery = textQuery.Trim();
         textQuery = textQuery[textQuery.IndexOf(' ')..];
         textQuery = textQuery[..textQuery.IndexOf("from", StringComparison.InvariantCultureIgnoreCase)];
@@ -44,7 +44,16 @@ public class SelectQuery(IExpressionBuilder builder, ILogger logger) : IQuery
         else
         {
             var columns = Regex.Matches(textQuery, @"\w{1,11}").Select(m => m.Value).ToList();
-            return new QueryResult(1, table, table.Select(columns, expression));
+            try
+            {
+                return new QueryResult(1, table, table.Select(columns, expression));
+            }
+            catch (Exception e)
+            {
+                logger.SendMessage("Ошибка", "Не удалось прочитать данные");
+                
+                return new QueryResult(0, null);
+            }
         }
 
         return new QueryResult(0, null);

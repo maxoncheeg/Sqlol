@@ -166,12 +166,25 @@ internal class Program
         IOperationFactory operationFactory = new OperationFactory();
         IExpressionBuilder builder = new ExpressionBuilder(configuration);
         ITablePropertyConverter converter = new TablePropertyConverter(configuration);
-        ILogger logger = new SimpleLogger((t, m) =>
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(t + ": " + m);
-            Console.ForegroundColor = ConsoleColor.White;
-        });
+        ILogger logger = new SimpleLogger(
+            (t, m) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(t + ": " + m);
+                Console.ForegroundColor = ConsoleColor.White;
+            },
+            (t, m) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(t + ": " + m);
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write("Подтверждение (Y - да, N - нет): ");
+                string? input = Console.ReadLine();
+                if (input == null) return false;
+
+                if (input.Trim().ToLowerInvariant() == "y") return true;
+                return false;
+            });
 
         IQueryFactory queryFactory = new QueryFactory(new()
         {
@@ -203,9 +216,13 @@ internal class Program
 
             foreach (var q in queries)
             {
-                if (q.ToLowerInvariant() == "exit") break;
-                
-                if(queries.Count > 1)
+                if (q.ToLowerInvariant() == "exit")
+                {
+                    query = q;
+                    break;
+                }
+
+                if (queries.Count > 1)
                 {
                     Console.ForegroundColor = ConsoleColor.Magenta;
                     Console.WriteLine("Запрос: " + q);
@@ -213,7 +230,7 @@ internal class Program
                 }
 
                 var result = manager.Execute(q);
-                
+
 
                 if (result.Data != null)
                 {
@@ -236,6 +253,7 @@ internal class Program
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Команда не выполнена.");
                 }
+
                 Console.ForegroundColor = ConsoleColor.White;
                 query = q;
             }
@@ -256,7 +274,7 @@ internal class Program
             if (line.Contains(';')) lineIndex = 0;
             else lineIndex++;
 
-            if(line != "") Console.Write(new string(' ', 5));
+            if (line != "") Console.Write(new string(' ', 5));
             Console.Write(new string(' ', lineIndex));
             input += line + ' ';
             line = Console.ReadLine();
